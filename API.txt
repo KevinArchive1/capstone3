@@ -1,0 +1,731 @@
+POST api/identity/register/
+payload:
+{
+  "first_name": "Test",
+  "last_name": "Customer 1",
+  "email": "testcustomer1@example.com",
+  "password": "password123"
+}
+response:
+{
+    "token": "dc107a3ea8fac3d7f4162abaa42bc64c3bc29f2e",
+    "user": {
+        "id": 1,
+        "username": "user_d1cd5e9eac5e",
+        "first_name": "Test",
+        "last_name": "Customer 1",
+        "email": "testcustomer1@example.com",
+        "phone": null,
+        "role": "customer",
+        "staff_role": null,
+        "registered_device_id": null,
+        "is_active": true
+    }
+}
+
+
+
+POST api/identity/login
+payload:
+{
+  "identifier": "testcustomer1@example.com",
+  "password": "password123"
+}
+response:
+{
+    "token": "dc107a3ea8fac3d7f4162abaa42bc64c3bc29f2e",
+    "user": {
+        "id": 1,
+        "username": "user_d1cd5e9eac5e",
+        "first_name": "Test",
+        "last_name": "Customer 1",
+        "email": "testcustomer1@example.com",
+        "phone": null,
+        "role": "customer",
+        "staff_role": null,
+        "registered_device_id": null,
+        "is_active": true
+    }
+}
+incorrect credentials response:
+Error 400 Bad Request
+{
+    "non_field_errors": [
+        "Invalid credentials."
+    ]
+}
+
+
+
+GET api/identity/me/
+no payload
+headers:
+Key: Authorization | Value: Token dc107a3ea8fac3d7f4162abaa42bc64c3bc29f2e
+response:
+{
+    "id": 1,
+    "username": "user_d1cd5e9eac5e",
+    "first_name": "Test",
+    "last_name": "Customer 1",
+    "email": "testcustomer1@example.com",
+    "phone": null,
+    "role": "customer",
+    "staff_role": null,
+    "registered_device_id": null,
+    "is_active": true
+}
+
+
+
+GET api/identity/me/history/
+no payload
+headers:
+Key: Authorization | Value: Token dc107a3ea8fac3d7f4162abaa42bc64c3bc29f2e
+response:
+[
+    {
+        "id": 7,
+        "action": "account.updated",
+        "actor_role": "customer",
+        "metadata": {
+            "fields": [
+                "phone"
+            ]
+        },
+        "created_at": "2026-03-20T05:13:15.100902Z"
+    },
+    {
+        "id": 6,
+        "action": "account.logged_in",
+        "actor_role": "customer",
+        "metadata": {
+            "device_id": null
+        },
+        "created_at": "2026-03-20T05:07:54.313314Z"
+    },
+    {
+        "id": 5,
+        "action": "account.logged_in",
+        "actor_role": "customer",
+        "metadata": {
+            "device_id": null
+        },
+        "created_at": "2026-03-20T05:04:43.355029Z"
+    },
+    {
+        "id": 4,
+        "action": "account.logged_in",
+        "actor_role": "customer",
+        "metadata": {
+            "device_id": null
+        },
+        "created_at": "2026-03-20T05:02:33.357619Z"
+    },
+    {
+        "id": 3,
+        "action": "account.logged_in",
+        "actor_role": "customer",
+        "metadata": {
+            "device_id": null
+        },
+        "created_at": "2026-03-20T05:02:08.433577Z"
+    },
+    {
+        "id": 2,
+        "action": "account.logged_in",
+        "actor_role": "customer",
+        "metadata": {
+            "device_id": null
+        },
+        "created_at": "2026-03-20T04:58:34.471796Z"
+    },
+    {
+        "id": 1,
+        "action": "account.registered",
+        "actor_role": "customer",
+        "metadata": {
+            "device_id": null
+        },
+        "created_at": "2026-03-20T04:07:36.238693Z"
+    }
+]
+
+
+
+POST api/identity/logout/
+no response content
+204 No Content
+
+Verification of logout
+GET api/identity/me/
+no payload
+headers:
+Key: Authorization | Value: Token dc107a3ea8fac3d7f4162abaa42bc64c3bc29f2e
+response:
+401 Unauthorized
+{
+    "detail": "Invalid token."
+}
+This is normal behaviour.
+
+
+
+--ADMIN ONLY--
+
+GET api/admin/users/
+no payload
+headers:
+Key: Authorization | Value: {token}
+response:
+[
+    {
+        "id": 1,
+        "username": "user_d1cd5e9eac5e",
+        "first_name": "Test",
+        "last_name": "Customer 1",
+        "email": "testcustomer1@example.com",
+        "phone": "12345678910",
+        "role": "customer",
+        "staff_role": null,
+        "registered_device_id": null,
+        "is_active": true
+    },
+    {
+        "id": 2,
+        "username": "sam",
+        "first_name": "",
+        "last_name": "",
+        "email": "sam@example.com",
+        "phone": null,
+        "role": "admin",
+        "staff_role": null,
+        "registered_device_id": null,
+        "is_active": true
+    },
+    {
+        "id": 3,
+        "username": "user_6fb319fa3a11",
+        "first_name": "Test Staff",
+        "last_name": "Waiter 1",
+        "email": "teststaffwaiter1@example.com",
+        "phone": "22345678910",
+        "role": "staff",
+        "staff_role": "waiter",
+        "registered_device_id": null,
+        "is_active": true
+    },
+    {
+        "id": 4,
+        "username": "user_6a207b782438",
+        "first_name": "Test Staff",
+        "last_name": "Cashier 1",
+        "email": "teststaffcashier1@example.com",
+        "phone": "32345678910",
+        "role": "staff",
+        "staff_role": "cashier",
+        "registered_device_id": null,
+        "is_active": true
+    },
+    {
+        "id": 5,
+        "username": "user_ea0906f3050c",
+        "first_name": "Test Staff",
+        "last_name": "Kitchen 1",
+        "email": "teststaffkitchen1@example.com",
+        "phone": "42345678910",
+        "role": "staff",
+        "staff_role": "kitchen",
+        "registered_device_id": null,
+        "is_active": true
+    },
+    {
+        "id": 6,
+        "username": "user_7073085357aa",
+        "first_name": "Test Staff",
+        "last_name": "Bar 1",
+        "email": "teststaffbar1@example.com",
+        "phone": "52345678910",
+        "role": "staff",
+        "staff_role": "bar",
+        "registered_device_id": null,
+        "is_active": true
+    }
+]
+
+GET api/admin/users/3/
+no payload
+headers:
+Key: Authorization | Value {token}
+response:
+{
+    "id": 3,
+    "username": "user_6fb319fa3a11",
+    "first_name": "Test Staff",
+    "last_name": "Waiter 1",
+    "email": "teststaffwaiter1@example.com",
+    "phone": "22345678910",
+    "role": "staff",
+    "staff_role": "waiter",
+    "registered_device_id": null,
+    "is_active": true
+}
+
+PATCH api/admin/users/1/
+payload:
+{
+    "username": "test_customer_1"
+}
+response:
+{
+    "id": 1,
+    "username": "test_customer_1",
+    "first_name": "Test",
+    "last_name": "Customer 1",
+    "email": "testcustomer1@example.com",
+    "phone": "12345678910",
+    "role": "customer",
+    "staff_role": null,
+    "registered_device_id": null,
+    "is_active": true
+}
+
+POST api/admin/users/1/deactivate/
+no payload
+headers:
+Key: Authorization | Value: {token}
+response:
+{
+    "id": 1,
+    "username": "test_customer_1",
+    "first_name": "Test",
+    "last_name": "Customer 1",
+    "email": "testcustomer1@example.com",
+    "phone": "12345678910",
+    "role": "customer",
+    "staff_role": null,
+    "registered_device_id": null,
+    "is_active": false
+}
+
+FOR REACTIVATION:
+PATCH api/admin/users/1/
+headers:
+Key: Authorization | Value: {token}
+payload:
+{
+    "is_active": true
+}
+response:
+{
+    "id": 1,
+    "username": "test_customer_1",
+    "first_name": "Test",
+    "last_name": "Customer 1",
+    "email": "testcustomer1@example.com",
+    "phone": "12345678910",
+    "role": "customer",
+    "staff_role": null,
+    "registered_device_id": null,
+    "is_active": true
+}
+
+LOGGING IN A DEACTIVATED ACCOUNT:
+POST api/identity/login/
+payload:
+{
+  "identifier": "testcustomer1@example.com",
+  "password": "password123"
+}
+response:
+400 Bad Request
+{
+    "non_field_errors": [
+        "Invalid credentials."
+    ]
+}
+
+--STAFF ONLY--
+
+
+POST api/categories/
+NOTE: Panggawa ng categories (meals, beverages, dinner, snacks, etc...) ng foods ito, not for public access, kaya ang method nito ay POST
+headers
+Key: Authorization | Value: {token}
+payload:
+{
+  "name": "Meals",
+  "sort_order": 1
+}
+response:
+{
+    "id": 1,
+    "created_at": "2026-03-23T23:48:16.158997+08:00",
+    "updated_at": "2026-03-23T23:48:16.158997+08:00",
+    "name": "Meals",
+    "sort_order": 1
+}
+
+
+POST api/inventory/ingredients/
+headers:
+Key: Authorization | Value: {token}
+payload:
+{
+    "name": "Rice",
+    "unit": "g",
+    "reorder_level": 20.00
+}
+NOTE: REMEMBER THE INVENTORY INGREDIENT ID (IT IS USED WHEN PASSING AN ARGUMENT TO api/invetory/batches/ as the id represents an ingredient. in simpler terms, you are creating a batch of which id)
+response:
+201
+{
+    "id": 1,
+    "name": "Rice",
+    "unit": "g",
+    "reorder_level": "20.00",
+    "available_quantity": "0.00",
+    "created_at": "2026-03-28T22:41:37.212451+08:00",
+    "updated_at": "2026-03-28T22:41:37.212451+08:00"
+}
+
+
+
+POST api/inventory/batches/
+headers:
+Key: Authorization | Value: {token}
+payload:
+{
+    "ingredient": 1,
+    "quantity_added": "1000.00",
+    "unit_cost": "20.00",
+    "expiration_date": "2027-01-01",
+    "source": "Second re-stock"
+}
+response:
+201
+{
+    "id": 2,
+    "created_at": "2026-03-31T10:03:51.452621+08:00",
+    "updated_at": "2026-03-31T10:03:51.452621+08:00",
+    "quantity_added": "1000.00",
+    "quantity_remaining": "1000.00",
+    "unit_cost": "20.00",
+    "expiration_date": "2027-01-01",
+    "source": "Second re-stock",
+    "ingredient": 1
+}
+
+POST api/menu-items/
+headers:
+Key: Authorization | Value: {token}
+payload:
+{
+    "name":"Rice Meal",
+  "category":1,
+  "description":"Simple rice meal",
+  "price":"120.00",
+  "prep_eta_minutes":15,
+  "preparation_station":"kitchen",
+  "ingredients":[
+    {"ingredient":1,"quantity_required":"10.00"}
+  ]
+}
+response:
+201
+{
+    "id": 1,
+    "ingredients": [
+        {
+            "id": 1,
+            "ingredient": 1,
+            "ingredient_name": "Rice",
+            "quantity_required": "10.00"
+        }
+    ],
+    "created_at": "2026-03-28T22:53:39.655314+08:00",
+    "updated_at": "2026-03-28T22:53:39.692809+08:00",
+    "name": "Rice Meal",
+    "description": "Simple rice meal",
+    "price": "120.00",
+    "prep_eta_minutes": 15,
+    "preparation_station": "kitchen",
+    "is_available": true,
+    "popularity_score": 0,
+    "category": 1
+}
+
+FOR PUBLIC (customers)
+GET api/menu-items/
+headers:
+Key: Authorization | Value {token}
+no payload
+response:
+200
+[
+    {
+        "id": 1,
+        "ingredients": [
+            {
+                "id": 1,
+                "ingredient": 1,
+                "ingredient_name": "Rice",
+                "quantity_required": "10.00"
+            }
+        ],
+        "created_at": "2026-03-28T22:53:39.655314+08:00",
+        "updated_at": "2026-03-31T10:03:51.463576+08:00",
+        "name": "Rice Meal",
+        "description": "Simple rice meal",
+        "price": "120.00",
+        "prep_eta_minutes": 15,
+        "preparation_station": "kitchen",
+        "is_available": true,
+        "popularity_score": 0,
+        "category": 1
+    }
+]
+
+TABLES AND SESSIONS
+
+POST api/tables/
+headers:
+Key: Authorization | Value: { customer token }
+payload:
+{
+    "identifier": "T1",
+    "capacity": 4,
+    "zone": "Row 1 Column 1"
+}
+response:
+403 Forbidden
+{
+    "detail": "You do not have permission to perform this action."
+}
+
+STAFF ONLY
+POST api/tables/
+headers:
+(proper authorization)
+Key: Authorization | Key: { non-customer token }
+payload:
+{
+    "identifier": "T1",
+    "capacity": 4,
+    "zone": "Row 1 Column 1"
+}
+response:
+201 Created
+{
+    "id": 1,
+    "created_at": "2026-04-09T15:46:27.255069+08:00",
+    "updated_at": "2026-04-09T15:46:27.255069+08:00",
+    "identifier": "T1",
+    "capacity": 4,
+    "status": "vacant",
+    "zone": "Row 1 Column 1",
+    "qr_code_value": "TABLEQR-707F22F71D"
+}
+
+PUBLICLY AVAILABLE
+GET api/tables/
+headers:
+Key: Authorization | Value: { token }
+no payload
+response:
+200
+[
+    {
+        "id": 1,
+        "created_at": "2026-04-09T15:46:27.255069+08:00",
+        "updated_at": "2026-04-09T15:46:27.255069+08:00",
+        "identifier": "T1",
+        "capacity": 4,
+        "status": "vacant",
+        "zone": "Row 1 Column 1",
+        "qr_code_value": "TABLEQR-707F22F71D"
+    }
+]
+
+STAFF ONLY
+GET api/table-scan-requests/
+no payload
+headers:
+Key: Authorization | Value: { token }
+response:
+200
+[] (pag wla pang request)
+ito pag meron na request both from customer and staff:
+[
+    {
+        "id": 2,
+        "created_at": "2026-04-10T16:48:38.895430+08:00",
+        "updated_at": "2026-04-10T16:48:38.895430+08:00",
+        "requested_device_id": "testdevice2",
+        "status": "pending",
+        "note": "staff scan",
+        "blocked_reason": null,
+        "table": 1,
+        "requested_by": null
+    },
+    {
+        "id": 1,
+        "created_at": "2026-04-10T16:39:20.666473+08:00",
+        "updated_at": "2026-04-10T16:39:20.666473+08:00",
+        "requested_device_id": "testdevice1",
+        "status": "pending",
+        "note": "QR scan",
+        "blocked_reason": null,
+        "table": 1,
+        "requested_by": null
+    }
+]
+
+PUBLIC access
+POST api/table-scan-requests/
+headers:
+Key: Authorization | Value: { token }
+payload:
+NOTE: yung id ng mga table ang gagamitin natin
+{
+    "table": 1,
+    "requested_device_id": "testdevice1",
+    "note": "QR scan"
+}
+response:
+201
+{
+    "id": 1,
+    "created_at": "2026-04-10T16:39:20.666473+08:00",
+    "updated_at": "2026-04-10T16:39:20.666473+08:00",
+    "requested_device_id": "testdevice1",
+    "status": "pending",
+    "note": "QR scan",
+    "blocked_reason": null,
+    "table": 1,
+    "requested_by": null
+}
+THIS IS NOW UPDATED, TABLE REQUESTS STATUS ARE AUTOMATICALLY SET TO "APPROVED".
+
+
+STAFF ONLY
+GET api/table-scan-requests/{id}/
+no payload
+headers:
+Key: Authorization | Value: {token}
+response:
+200
+{
+    "id": 1,
+    "created_at": "2026-04-10T16:39:20.666473+08:00",
+    "updated_at": "2026-04-10T16:39:20.666473+08:00",
+    "requested_device_id": "testdevice1",
+    "status": "pending",
+    "note": "QR scan",
+    "blocked_reason": null,
+    "table": 1,
+    "requested_by": null
+}
+
+STAFF ONLY - CASHIER ONLY
+POST api/table-scan-requests/1/moderate/
+headers:
+Key: Authorization | Value: { token }
+payload:
+
+response:
+200
+{
+    "id": 1,
+    "created_at": "2026-04-10T16:39:20.666473+08:00",
+    "updated_at": "2026-04-10T16:53:36.287675+08:00",
+    "requested_device_id": "testdevice1",
+    "status": "approved",
+    "note": "Valid occupied table request",
+    "blocked_reason": null,
+    "table": 1,
+    "requested_by": null
+}
+NOTE: kahit approved na ang table request, d pa din s'ya mawawala sa records, pero mawawala s'ya sa request pool
+kasi malilipat ang mga approved request sa hiwalay na tab kunwari para lng organized ang view
+
+
+
+POST /api/identity/guest/start/
+ito yung ibabalik nan:
+guest_key
+guest_user_id
+expires_at
+seconds_remaining
+
+How to use it in frontend
+Call POST /api/identity/guest/start/ once when user taps “Continue as Guest”.
+Store returned guest_key locally.
+Send guest_key with guest order create/submit/cancel calls.
+Optionally call GET /api/identity/guest/session/?guest_key=... to show expiry countdown.
+
+aralin mo nlng pre kung pano mo gagamitin yan. LMK pag may na-encounter ka na problem.
+
+
+
+
+ADMIN ONLY
+GET api/analytics/dashboard/
+headers:
+Key: Authorization | Value: {token}
+payload:
+{
+    "range_type": "daily" (can be monthly, annual, and weekly)
+}
+response:
+{
+    "range": {
+        "start_at": "2026-05-24T00:00:00+08:00",
+        "end_at": "2026-05-24T23:59:59.999999+08:00"
+    },
+    "order_count": 0,
+    "paid_order_count": 0,
+    "revenue": 0.0,
+    "top_items": [],
+    "table_statuses": [
+        {
+            "status": "vacant",
+            "count": 1
+        }
+    ],
+    "open_staff_pages": 0,
+    "low_stock_ingredients": []
+}
+
+POST api/analytics/simulate/
+same headers lang
+payload:
+{
+  "menu_price_delta":"10.00",
+  "monthly_salary_delta":"5000.00",
+  "staff_delta":1,
+  "expansion_cost":"20000.00",
+  "added_capacity":10
+}
+response:
+{
+    "id": 1,
+    "created_at": "2026-05-24T18:46:18.443616+08:00",
+    "updated_at": "2026-05-24T18:46:18.443616+08:00",
+    "assumptions": {
+        "menu_price_delta": "10.00",
+        "monthly_salary_delta": "5000.00",
+        "staff_delta": 1,
+        "expansion_cost": "20000.00",
+        "added_capacity": 10
+    },
+    "results": {
+        "baseline_revenue": "0.00", (ibig sabihin ay wla pang recorded sales)
+        "projected_revenue": "10.00", (after ng price increase)
+        "projected_cost": "45000.00", 
+        "projected_profit": "-44990.00", (lugi pag naka negative)
+        "added_capacity": 10
+    },
+    "created_by": 2
+}
+ang ibig sabihin nito, pag dagdag ng staff at pag expand ay ikalulugi. This is what simulation does.
+Additionally, delta means increase

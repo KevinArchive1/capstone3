@@ -1,0 +1,91 @@
+THIS FILE IS FOR NOTE TAKING PURPOSES ONLY, MEANT FOR DEV/S.
+EVERY CHANGES AND PLANS MUST BE STATED HERE, AS WELL AS EXPLANATIONS SO YOU DON'T FORGET.
+PUT "--END--" ALWAYS AFTER WRITING HERE.
+
+March 11, 2026 9:14 PM
+Finished creating the apps folder and the following apps/services:
+    - analytics
+    - audit_logs
+    - feedback
+    - inventory
+    - menu
+    - orders
+    - sessions
+    - suppliers
+    - tables
+    - users
+Such structure is made for a more organized codebase.
+"common" folder is made, this is optional, soon I'll find out why I added inventory
+
+Added CorsMiddleware as well as:
+CORS_ALLOW_ALL_ORIGINS = True
+
+renamed the service "sessions" to "table_sessions" as it caused a conflict with an existing built-in Django sessions
+
+ran makemigrations and migrate, works well
+
+postgresql config is commented, uncomment when certain
+
+Next, I'll plan how to keep business logic out of views folder
+Additional important task: Plan and create the dbdiagram and the flowchart of the system
+
+--END--
+
+
+
+
+March 13, 2026 6:44 PM
+Star of prototype development, schema has been created
+
+I'll be starting with apps/users
+
+superuser account: sam - adminpassword123
+
+I've made the basic models and basic functionalitites of those models. Time to rest now.
+
+Go to ChatGPT and find:
+the api endpoint is now working "http://127.0.0.1:8000/api/menu-items", help me implement the features in correct order
+before continuing
+
+--END--
+
+
+
+
+March 14, 2026 Around 7 PM
+I added serializers so apis can be tested via postman
+
+Prepare the schema
+
+--END--
+
+
+
+
+March 28, 2026 10:48 PM
+
+adding invetory ingredient is successful via postman
+creating batch for ingredient failed (quantity_added is said to be an unexpected argument and caused 500 Internal Server Error)
+creating batch for ingredient (retry) is successful in Django Admin Interface (manual)
+
+left some important notes in API.txt pertaining to api/inventory/batches, see api/inventory/ingredients/
+
+NOTE:
+WHAT THE HECK IS GOING ON HERE, THIS HAS TO BE SOME KIND OF AN ANNOYING BUG I CAN'T FIX.
+NEEDS.FIXING.WHENEVER.POSSIBLE
+
+--END--
+
+
+
+March 31, 2026 1:02 PM
+
+tabe merge can be tabe grouping
+issue with api/inventory/batch is now fixed, it was a problem from apps/inventory/services.py 
+
+
+
+
+
+--END--
+ADD DATE, START HERE FOR THE NEXT CODING SESSION
