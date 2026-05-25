@@ -1,0 +1,246 @@
+.page {
+  padding: 32px 40px 60px;
+  background: #f7f7f5;
+  min-height: 100vh;
+}
+
+.loading {
+  padding: 60px;
+  text-align: center;
+  color: #888;
+  font-size: 15px;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.sub {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.date {
+  font-size: 13px;
+  color: #888;
+}
+
+/* ERROR */
+.errorBanner {
+  background: #fce8e8;
+  color: #e53e3e;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 20px;
+  border: 1.5px solid #eee;
+  background: white;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover { border-color: #ff7a00; color: #ff7a00; }
+
+.activeTab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 20px;
+  border: 1.5px solid #ff7a00;
+  background: #ff7a00;
+  font-size: 13px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabBadge {
+  background: rgba(255,255,255,0.3);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.tab .tabBadge {
+  background: #ff7a00;
+  color: white;
+}
+
+/* SECTION */
+.section { width: 100%; }
+
+/* EMPTY STATE */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 0;
+  text-align: center;
+  color: #bbb;
+  font-size: 15px;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.browseBtn {
+  margin-top: 16px;
+  padding: 10px 24px;
+  border-radius: 20px;
+  border: none;
+  background: #ff7a00;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.browseBtn:hover { background: #e06900; }
+
+/* ORDER LIST */
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 680px;
+}
+
+.orderCard {
+  background: white;
+  border-radius: 14px;
+  padding: 18px 22px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.orderCard:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-color: #ff7a00;
+}
+
+.orderTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.orderNumber {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 3px;
+}
+
+.orderDate {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+.orderContact {
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 10px;
+}
+
+.orderBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.orderTotal {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ff7a00;
+}
+
+.viewLink {
+  font-size: 13px;
+  color: #ff7a00;
+  font-weight: 600;
+}
+
+/* ACTIVITY LOG */
+.logList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 680px;
+}
+
+.logCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  background: white;
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.logLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.logAction {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.logMeta {
+  font-size: 12px;
+  color: #888;
+}
+
+.logTime {
+  font-size: 12px;
+  color: #aaa;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

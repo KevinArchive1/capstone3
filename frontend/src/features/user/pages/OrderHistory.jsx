@@ -1,30 +1,188 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../../../services/api";
+import styles from "./OrderHistory.module.css";
 
-function OrderHistory() {
-  const [orders, setOrders] = useState([]);
-
-  useEffect(() => {
-    API.get("identity/me/history/")
-      .then(res => setOrders(res.data))
-      .catch(err => console.error(err));
-  }, []);
-
+function StatusBadge({ status }) {
+  const map = {
+    placed:          { label: "Placed",          bg: "#fff4ea", color: "#ff7a00" },
+    payment_pending: { label: "Awaiting Payment", bg: "#eef2ff", color: "#4a6cf7" },
+    paid:            { label: "Paid",             bg: "#e6f4ea", color: "#28a745" },
+    preparing:       { label: "Preparing",        bg: "#fff8e1", color: "#f59e0b" },
+    ready:           { label: "Ready",            bg: "#fff4ea", color: "#ff7a00" },
+    cancelled:       { label: "Cancelled",        bg: "#fce8e8", color: "#e53e3e" },
+    draft:           { label: "Draft",            bg: "#f0f0f0", color: "#888"    },
+  };
+  const s = map[status] || { label: status, bg: "#f0f0f0", color: "#888" };
   return (
-    <div>
-      <h2>My Orders</h2>
-
-      {orders.length === 0 ? (
-        <p>No orders yet.</p>
-      ) : (
-        orders.map(order => (
-          <div key={order.id}>
-            <p>Order #{order.id}</p>
-          </div>
-        ))
-      )}
-    </div>
+    <span style={{
+      background: s.bg, color: s.color,
+      fontSize: "11px", fontWeight: 700,
+      padding: "3px 10px", borderRadius: "20px",
+      textTransform: "capitalize",
+    }}>
+      {s.label}
+    </span>
   );
 }
 
-export default OrderHistory;
+export default function OrderHistory() {
+  const navigate = useNavigate();
+  const [actionLogs, setActionLogs]   = useState([]);
+  const [orders,     setOrders]       = useState([]);
+  const [loading,    setLoading]      = useState(true);
+  const [error,      setError]        = useState("");
+  const [activeTab,  setActiveTab]    = useState("orders");
+
+  useEffect(() => {
+    API.get("identity/me/history/")
+      .then(res => {
+        // Backend returns { action_logs: [...], guest_orders_matched_after_registration: [...] }
+        setActionLogs(res.data.action_logs || []);
+        setOrders(res.data.guest_orders_matched_after_registration || []);
+      })
+      .catch(() => setError("Could not load order history. Please try again."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const today = new Date().toLocaleDateString("en-PH", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+
+  if (loading) return (
+    <div className={styles.loading}>Loading your history...</div>
+  );
+
+  return (
+    <div className={styles.page}>
+
+      {/* HEADER */}
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>My History</h1>
+          <p className={styles.sub}>Your order and activity history</p>
+        </div>
+        <span className={styles.date}>{today}</span>
+      </div>
+
+      {error && <div className={styles.errorBanner}>{error}</div>}
+
+      {/* TABS */}
+      <div className={styles.tabs}>
+        <button
+          className={activeTab === "orders" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("orders")}
+        >
+          Orders
+          {orders.length > 0 && (
+            <span className={styles.tabBadge}>{orders.length}</span>
+          )}
+        </button>
+        <button
+          className={activeTab === "activity" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("activity")}
+        >
+          Activity Log
+          {actionLogs.length > 0 && (
+            <span className={styles.tabBadge}>{actionLogs.length}</span>
+          )}
+        </button>
+      </div>
+
+      {/* ORDERS TAB */}
+      {activeTab === "orders" && (
+        <div className={styles.section}>
+          {orders.length === 0 ? (
+            <div className={styles.empty}>
+              <p className={styles.emptyIcon}>🧾</p>
+              <p>No orders yet.</p>
+              <button
+                className={styles.browseBtn}
+                onClick={() => navigate("/menu")}
+              >
+                Browse Menu
+              </button>
+            </div>
+          ) : (
+            <div className={styles.orderList}>
+              {orders.map(order => (
+                <div
+                  key={order.id}
+                  className={styles.orderCard}
+                  onClick={() => navigate(`/order/process/${order.id}`)}
+                >
+                  <div className={styles.orderTop}>
+                    <div>
+                      <p className={styles.orderNumber}>
+                        #{order.receipt_number?.slice(-6) || order.id}
+                      </p>
+                      <p className={styles.orderDate}>
+                        {order.created_at
+                          ? new Date(order.created_at).toLocaleString("en-PH", {
+                              month: "short", day: "numeric", year: "numeric",
+                              hour: "2-digit", minute: "2-digit",
+                            })
+                          : "—"}
+                      </p>
+                    </div>
+                    <StatusBadge status={order.status} />
+                  </div>
+
+                  {order.placed_for_contact && (
+                    <p className={styles.orderContact}>
+                      📞 {order.placed_for_contact}
+                    </p>
+                  )}
+
+                  <div className={styles.orderBottom}>
+                    <span className={styles.orderTotal}>
+                      ₱{Number(order.total_amount || 0).toFixed(2)}
+                    </span>
+                    <span className={styles.viewLink}>View →</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ACTIVITY LOG TAB */}
+      {activeTab === "activity" && (
+        <div className={styles.section}>
+          {actionLogs.length === 0 ? (
+            <div className={styles.empty}>
+              <p className={styles.emptyIcon}>📋</p>
+              <p>No activity yet.</p>
+            </div>
+          ) : (
+            <div className={styles.logList}>
+              {actionLogs.map(log => (
+                <div key={log.id} className={styles.logCard}>
+                  <div className={styles.logLeft}>
+                    <span className={styles.logAction}>{log.action}</span>
+                    {log.metadata && Object.keys(log.metadata).length > 0 && (
+                      <span className={styles.logMeta}>
+                        {Object.entries(log.metadata)
+                          .filter(([, v]) => v !== null && v !== undefined && v !== "")
+                          .map(([k, v]) => `${k}: ${v}`)
+                          .join(" · ")}
+                      </span>
+                    )}
+                  </div>
+                  <span className={styles.logTime}>
+                    {new Date(log.created_at).toLocaleString("en-PH", {
+                      month: "short", day: "numeric",
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+    </div>
+  );
+}
