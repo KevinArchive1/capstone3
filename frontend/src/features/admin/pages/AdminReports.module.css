@@ -1,0 +1,323 @@
+.page { width: 100%; }
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.sub {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.date { font-size: 13px; color: #888; }
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.tab {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1.5px solid #eee;
+  background: white;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover { border-color: #ff7a00; color: #ff7a00; }
+
+.activeTab {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1.5px solid #ff7a00;
+  background: #ff7a00;
+  font-size: 13px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* REPORTS LAYOUT */
+.reportsLayout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.generateCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 32px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #eee;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: white;
+}
+
+.input:focus { border-color: #ff7a00; }
+
+.generateBtn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #ff7a00;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.generateBtn:hover { background: #e06900; }
+.generateBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* REPORT LIST */
+.reportList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reportCard {
+  background: white;
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.reportCard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+.selectedReport { border-color: #ff7a00; }
+
+.reportTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.reportRange {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.reportDate {
+  font-size: 12px;
+  color: #888;
+}
+
+.reportStats {
+  display: flex;
+  gap: 24px;
+}
+
+.reportStat { display: flex; flex-direction: column; gap: 2px; }
+
+.reportStatLabel {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
+
+.reportStatValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff7a00;
+  margin: 0;
+}
+
+.reportExpanded { margin-top: 16px; }
+
+.divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 12px 0;
+}
+
+.expandedTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.topItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 13px;
+  color: #333;
+}
+
+/* SIMULATION LAYOUT */
+.simLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.simCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.simDesc {
+  font-size: 13px;
+  color: #888;
+  margin: -12px 0 20px;
+}
+
+.simGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hint {
+  font-size: 11px;
+  color: #aaa;
+  margin: 2px 0 0;
+}
+
+.simBtn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #ff7a00;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.simBtn:hover { background: #e06900; }
+.simBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* RESULTS */
+.simResults {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 32px;
+}
+
+.resultGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.resultCard {
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.profitCard {
+  grid-column: 1 / -1;
+  background: #fff4ea;
+  text-align: center;
+}
+
+.resultLabel {
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 6px;
+}
+
+.resultValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.profitNote {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 0;
+  color: #555;
+}
+
+.noResult {
+  text-align: center;
+  padding: 60px 0;
+  color: #bbb;
+  font-size: 14px;
+}
+
+.empty {
+  color: #bbb;
+  font-size: 13px;
+  padding: 10px 0;
+}

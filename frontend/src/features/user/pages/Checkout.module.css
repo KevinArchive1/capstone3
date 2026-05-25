@@ -1,0 +1,107 @@
+.page{
+    background:#ff7a00;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+  }
+  
+  .receipt{
+    background:#f2f2f2;
+    width:100%;
+    max-width:420px;
+    border-radius:30px;
+    padding:30px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.1);
+  }
+  
+  .title{
+    text-align:center;
+    color:#ff7a00;
+    margin-bottom:6px;
+  }
+  
+  .address{
+    text-align:center;
+    font-size:12px;
+    margin-bottom:12px;
+  }
+  
+  .receiptNo{
+    font-size:13px;
+    margin-top:10px;
+  }
+  
+  .table{
+    width:100%;
+    margin-top:20px;
+    border-collapse:collapse;
+  }
+  
+  .table th{
+    font-size:13px;
+    padding-bottom:8px;
+  }
+  
+  .table td{
+    padding:6px 0;
+    font-size:14px;
+  }
+  
+  .total{
+    text-align:right;
+    margin-top:10px;
+  }
+  
+  .confirmBtn{
+    width:100%;
+    padding:14px;
+    margin-top:20px;
+    border-radius:25px;
+    border:none;
+    background:#ff7a00;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.2s;
+  }
+  
+  .confirmBtn:hover{
+    background:#e66900;
+  }
+  
+  .thankyou{
+    text-align:center;
+    margin-top:30px;
+    font-weight:600;
+  }
+  
+  /* Tablet */
+  
+  @media (min-width:768px){
+  
+    .receipt{
+      max-width:500px;
+      padding:40px;
+    }
+  
+    .title{
+      font-size:32px;
+    }
+  
+    .table td{
+      font-size:15px;
+    }
+  
+  }
+  
+  /* Desktop */
+  
+  @media (min-width:1024px){
+  
+    .receipt{
+      max-width:560px;
+    }
+  
+  }

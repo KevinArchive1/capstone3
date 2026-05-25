@@ -1,0 +1,142 @@
+.page {
+  width: 100%;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.sub {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.date {
+  font-size: 13px;
+  color: #888;
+}
+
+/* EMPTY */
+.empty {
+  text-align: center;
+  padding: 80px 0;
+  color: #bbb;
+  font-size: 16px;
+}
+
+/* LIST */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* CARD */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-left: 5px solid #28a745;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+/* LEFT */
+.cardLeft {
+  min-width: 160px;
+}
+
+.orderId {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.table {
+  font-size: 13px;
+  color: #555;
+  margin: 0 0 4px;
+}
+
+.time {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+/* MIDDLE */
+.cardMiddle {
+  flex: 1;
+}
+
+.itemsLabel {
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.itemsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.itemChip {
+  font-size: 12px;
+  background: #f5f5f5;
+  color: #444;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* RIGHT */
+.cardRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.readyBadge {
+  background: #e6f4ea;
+  color: #28a745;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff7a00;
+  margin: 0;
+}
