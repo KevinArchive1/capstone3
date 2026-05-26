@@ -4,11 +4,11 @@ import styles from "./TableModal.module.css";
 
 export default function TableModal({ onClose, onSuccess }) {
   const { resolveTable } = useTable();
-  const [mode, setMode] = useState("manual");
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
+  const [mode,    setMode]    = useState("manual");
+  const [code,    setCode]    = useState("");
+  const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
-  const scannerRef = useRef(null);
+  const scannerRef         = useRef(null);
   const scannerInstanceRef = useRef(null);
 
   useEffect(() => {
@@ -34,9 +34,7 @@ export default function TableModal({ onClose, onSuccess }) {
           },
           () => {}
         )
-        .then(() => {
-          isRunning = true;
-        })
+        .then(() => { isRunning = true; })
         .catch(() => {
           setError("Camera access denied. Use manual entry instead.");
           setMode("manual");
@@ -55,7 +53,6 @@ export default function TableModal({ onClose, onSuccess }) {
     const trimmed = (rawCode || code).trim();
     if (!trimmed) return;
 
-    // Accept short code like "A1" or full QR value
     const fullCode = trimmed.startsWith("TABLEQR-")
       ? trimmed
       : `TABLEQR-${trimmed}`;
@@ -64,15 +61,21 @@ export default function TableModal({ onClose, onSuccess }) {
     setError("");
 
     try {
-      // resolveTable now handles scan request creation internally
-      const found = await resolveTable(fullCode);
-      onSuccess?.(found);
+      await resolveTable(fullCode);
+      onSuccess?.();
       onClose?.();
     } catch (err) {
-      if (err?.response?.status === 400) {
-        setError("This table is currently unavailable. Please ask staff for help.");
+      if (err.message === "TABLE_OCCUPIED") {
+        setError(
+          "🚫 This table is currently occupied by another party. " +
+          "Please check your table code or ask staff for help."
+        );
+      } else if (err?.response?.status === 400) {
+        setError("This table is unavailable. Please ask staff for assistance.");
+      } else if (err?.response?.status === 404 || err?.message === "Table not found") {
+        setError("Table not found. Please check the code and try again.");
       } else {
-        setError("Table not found. Check the code and try again.");
+        setError("Something went wrong. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -81,14 +84,13 @@ export default function TableModal({ onClose, onSuccess }) {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.close} onClick={onClose}>
-          ✕
-        </button>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+
+        <button className={styles.close} onClick={onClose}>✕</button>
 
         <h2 className={styles.title}>Find your table</h2>
         <p className={styles.sub}>
-          Scan the QR code on your table or enter the code manually
+          Scan the QR code on your table or enter the short code manually
         </p>
 
         <div className={styles.tabs}>
@@ -112,8 +114,8 @@ export default function TableModal({ onClose, onSuccess }) {
               className={styles.input}
               placeholder="e.g. A1 or TABLEQR-abc123"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              onChange={e => { setCode(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
               autoFocus
             />
             <button
@@ -135,7 +137,12 @@ export default function TableModal({ onClose, onSuccess }) {
           </div>
         )}
 
-        {error && <p className={styles.error}>{error}</p>}
+        {error && (
+          <div className={styles.errorBox}>
+            <p className={styles.errorText}>{error}</p>
+          </div>
+        )}
+
       </div>
     </div>
   );

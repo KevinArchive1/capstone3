@@ -1,18 +1,23 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { useCart } from "../../../../context/CartContext";
-import { useAuth } from "../../../../context/AuthContext";
+import { useCart }  from "../../../../context/CartContext";
+import { useAuth }  from "../../../../context/AuthContext";
 import { useTable } from "../../../../context/TableContext";
-import { useState } from "react";
-import TableModal from "../../../../components/TableModal";
+import { useState, useEffect } from "react";
+import TableModal  from "../../../../components/TableModal";
 import LogoutButton from "../../../../components/LogoutButton";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
-  const { cart } = useCart();
-  const { user } = useAuth();
-  const { table } = useTable();
-  const navigate = useNavigate();
-  const [showModal, setShowModal] = useState(false);
+  const { cart }                          = useCart();
+  const { user }                          = useAuth();
+  const { table, revalidateTable, clearTable } = useTable();
+  const navigate                          = useNavigate();
+  const [showModal, setShowModal]         = useState(false);
+
+  // On mount: confirm stored table session is still active
+  useEffect(() => {
+    revalidateTable();
+  }, []);
 
   const lastOrderId = localStorage.getItem("last_order_id");
 
@@ -28,7 +33,10 @@ export default function Navbar() {
         </div>
 
         <div className={styles.links}>
-          <NavLink to="/menu" className={({ isActive }) => isActive ? styles.activeLink : styles.link}>
+          <NavLink
+            to="/menu"
+            className={({ isActive }) => isActive ? styles.activeLink : styles.link}
+          >
             Menu
           </NavLink>
 
@@ -49,7 +57,7 @@ export default function Navbar() {
             to={lastOrderId ? `/order/process/${lastOrderId}` : "/order/process"}
             className={({ isActive }) => isActive ? styles.activeLink : styles.link}
           >
-            Process
+            My Order
           </NavLink>
 
           {user && (
@@ -57,18 +65,27 @@ export default function Navbar() {
               to="/account/history"
               className={({ isActive }) => isActive ? styles.activeLink : styles.link}
             >
-              My Orders
+              History
             </NavLink>
           )}
         </div>
 
         <div className={styles.right}>
-          <div className={styles.tableBadge} onClick={() => setShowModal(true)}>
-            🪑 {table ? `Table ${table.identifier}` : "No table"}
+          {/* Table badge — shows occupied warning if table was stolen */}
+          <div
+            className={`${styles.tableBadge} ${!table ? styles.tableBadgeEmpty : ""}`}
+            onClick={() => setShowModal(true)}
+          >
+            🪑{" "}
+            {table
+              ? `Table ${table.identifier}`
+              : "Select Table"}
           </div>
+
           <div className={styles.userBadge}>
             👤 {user ? user.username : "Guest"}
           </div>
+
           <LogoutButton />
         </div>
 

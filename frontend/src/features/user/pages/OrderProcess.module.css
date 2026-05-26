@@ -1,17 +1,4 @@
-.loading {
-  padding: 40px;
-  text-align: center;
-  color: #888;
-}
-
-.noOrders {
-  padding: 60px;
-  text-align: center;
-  color: #bbb;
-  font-size: 16px;
-}
-
-/* ── CONFIRM SCREEN ─────────────────────────────────────── */
+/* ── CONFIRM SCREEN ────────────────────────────────────── */
 .confirmPage {
   min-height: 100vh;
   background: #f7f7f5;
@@ -42,7 +29,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
   background: #fff4ea;
   border: 1.5px solid #ff7a00;
   color: #ff7a00;
@@ -50,76 +37,95 @@
   font-weight: 600;
   padding: 10px 20px;
   border-radius: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
+
+.changeTableBtn {
+  padding: 3px 12px;
+  border-radius: 10px;
+  border: 1px solid #ff7a00;
+  background: white;
+  color: #ff7a00;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.changeTableBtn:hover { background: #ff7a00; color: white; }
 
 .confirmTableMissing {
   text-align: center;
   color: #e53e3e;
   font-size: 14px;
-  margin-bottom: 12px;
   padding: 10px;
   background: #fce8e8;
   border-radius: 12px;
+  margin-bottom: 10px;
 }
 
 .confirmUser {
   text-align: center;
   font-size: 14px;
   color: #555;
-  margin-bottom: 24px;
+  margin: 0 0 14px;
+}
+
+.payNotice {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #4a6cf7;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  line-height: 1.5;
 }
 
 .confirmSummary {
   background: #f9f9f9;
   border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
 }
 
 .confirmSummaryTitle {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #1a1a1a;
-  margin: 0 0 14px;
+  margin: 0 0 12px;
 }
 
 .confirmItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 7px 0;
   border-bottom: 1px solid #eee;
-}
-
-.confirmItem:last-of-type {
-  border-bottom: none;
-}
-
-.confirmItemName {
   font-size: 14px;
   color: #333;
 }
 
-.confirmItemQty {
-  color: #888;
-  font-size: 13px;
-}
+.confirmItem:last-of-type { border-bottom: none; }
 
-.confirmItemPrice {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
+.confirmQty { color: #888; font-size: 13px; }
+
+.confirmItemPrice { font-weight: 600; color: #1a1a1a; }
 
 .confirmTotal {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 2px solid #eee;
-  font-size: 16px;
+  font-size: 15px;
+}
+
+.confirmTotalValue {
+  font-size: 18px;
+  color: #ff7a00;
 }
 
 .confirmError {
@@ -129,28 +135,25 @@
   background: #fce8e8;
   padding: 10px;
   border-radius: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .confirmBtn {
   width: 100%;
-  padding: 16px;
+  padding: 15px;
   border-radius: 14px;
   border: none;
   background: #ff7a00;
   color: white;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
-.confirmBtn:hover { background: #e06900; }
-.confirmBtn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
+.confirmBtn:hover    { background: #e06900; }
+.confirmBtn:disabled { background: #ccc; cursor: not-allowed; }
 
 .backBtn {
   width: 100%;
@@ -165,33 +168,94 @@
   transition: all 0.15s;
 }
 
-.backBtn:hover {
-  border-color: #ff7a00;
-  color: #ff7a00;
+.backBtn:hover { border-color: #ff7a00; color: #ff7a00; }
+
+/* ── TRACKER PAGE ──────────────────────────────────────── */
+.trackerPage {
+  padding: 24px 40px 60px;
+  background: #f7f7f5;
+  min-height: 100vh;
 }
 
-/* ── STATUS STEPS ───────────────────────────────────────── */
+.loading {
+  padding: 60px;
+  text-align: center;
+  color: #888;
+  font-size: 15px;
+}
+
+.noOrders {
+  padding: 80px 0;
+  text-align: center;
+  color: #bbb;
+  font-size: 15px;
+}
+
+.orderAgainBtn {
+  margin-top: 16px;
+  padding: 10px 24px;
+  border-radius: 20px;
+  border: none;
+  background: #ff7a00;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.orderAgainBtn:hover { background: #e06900; }
+
+/* NOTIF BAR */
+.notifBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: 14px;
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-left: 5px solid #ff7a00;
+}
+
+.notifIcon { font-size: 24px; }
+
+.notifTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 3px;
+}
+
+.notifSub {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+/* STATUS STEPS */
 .stepsCard {
   background: white;
-  border-radius: 16px;
-  padding: 20px 28px;
-  margin-bottom: 24px;
+  border-radius: 14px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-.stepsOrderLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: #888;
-  margin: 0 0 16px;
+.stepsLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #aaa;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin: 0 0 16px;
 }
 
 .stepsRow {
   display: flex;
   align-items: flex-start;
-  gap: 0;
+  justify-content: space-between;
   position: relative;
 }
 
@@ -203,94 +267,92 @@
   position: relative;
 }
 
+.stepLine {
+  position: absolute;
+  top: 15px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: #eee;
+  z-index: 0;
+}
+
+.stepLineDone { background: #ff7a00; }
+
 .stepDot {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  margin-bottom: 8px;
-  z-index: 2;
+  z-index: 1;
   position: relative;
+  margin-bottom: 6px;
 }
 
-.stepDone {
-  background: #ff7a00;
-  color: white;
-}
-
-.stepActive {
-  background: #ff7a00;
-  color: white;
-  box-shadow: 0 0 0 4px rgba(255,122,0,0.2);
-}
-
-.stepPending {
-  background: #f0f0f0;
-  color: #aaa;
-}
+.stepDone    { background: #ff7a00; color: white; }
+.stepActive  { background: #ff7a00; color: white; box-shadow: 0 0 0 4px rgba(255,122,0,0.2); }
+.stepPending { background: #f0f0f0; color: #aaa; }
 
 .stepLabel {
-  font-size: 11px;
+  font-size: 10px;
   color: #aaa;
   text-align: center;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.stepLabelActive {
-  color: #ff7a00;
-  font-weight: 700;
+.stepLabelActive { color: #ff7a00; font-weight: 700; }
+
+/* TABS */
+.trackerTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
-.stepLine {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  width: 100%;
-  height: 2px;
-  background: #eee;
-  z-index: 1;
-}
-
-.stepLineDone {
-  background: #ff7a00;
-}
-
-/* ── TRACKER PAGE ───────────────────────────────────────── */
-.trackerPage {
-  padding: 24px 40px 60px;
-}
-
-.notifBar {
+.tab {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1.5px solid #eee;
   background: white;
-  border-radius: 14px;
-  padding: 16px 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  border-left: 5px solid #ff7a00;
-}
-
-.notifIcon { font-size: 24px; }
-
-.notifTitle {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 4px;
-}
-
-.notifSub {
   font-size: 13px;
-  color: #888;
-  margin: 0;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
+.tab:hover { border-color: #ff7a00; color: #ff7a00; }
+
+.activeTab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1.5px solid #ff7a00;
+  background: #ff7a00;
+  font-size: 13px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabCount {
+  background: rgba(255,255,255,0.3);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+/* TRACKER LAYOUT */
 .trackerLayout {
   display: flex;
   gap: 24px;
@@ -302,14 +364,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  transition: all 0.3s ease;
 }
 
-.orderListNarrow {
-  max-width: calc(100% - 380px);
-}
+.orderListNarrow { max-width: calc(100% - 380px); }
 
-/* ── ORDER CARD ─────────────────────────────────────────── */
+/* ORDER CARD */
 .orderCard {
   display: flex;
   align-items: center;
@@ -321,19 +380,15 @@
   transition: box-shadow 0.2s;
 }
 
-.orderCard:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-}
+.orderCard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
 
-.orderLeft {
-  min-width: 160px;
-}
+.orderLeft { min-width: 150px; }
 
 .orderNumber {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #1a1a1a;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
 }
 
 .orderTable {
@@ -344,28 +399,26 @@
 
 .orderTime {
   font-size: 11px;
-  color: #888;
+  color: #aaa;
   margin: 0;
 }
 
-.orderStatus {
-  min-width: 180px;
-}
+.orderStatus { min-width: 180px; }
 
 .statusBadge {
   display: inline-block;
-  padding: 5px 14px;
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
 }
 
 .statusDesc {
   font-size: 12px;
   color: #555;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 .statusTimeLabel {
@@ -375,19 +428,14 @@
 }
 
 .statusTime {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   margin: 0;
 }
 
-.circleWrapper {
-  flex-shrink: 0;
-}
+.circleWrapper { flex-shrink: 0; }
 
-.orderItems {
-  flex: 1;
-  min-width: 140px;
-}
+.orderItems { flex: 1; min-width: 130px; }
 
 .itemsLabel {
   font-size: 12px;
@@ -404,26 +452,23 @@
 
 .viewReceiptBtn {
   flex-shrink: 0;
-  padding: 10px 18px;
+  padding: 9px 16px;
   border-radius: 20px;
   border: 1.5px solid #ff7a00;
   background: white;
   color: #ff7a00;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.2s, color 0.2s;
+  transition: all 0.2s;
 }
 
-.viewReceiptBtn:hover {
-  background: #ff7a00;
-  color: white;
-}
+.viewReceiptBtn:hover { background: #ff7a00; color: white; }
 
-/* ── RECEIPT PANEL ──────────────────────────────────────── */
+/* RECEIPT PANEL */
 .receiptPanel {
-  width: 360px;
+  width: 340px;
   flex-shrink: 0;
   background: white;
   border-radius: 16px;
@@ -438,11 +483,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .receiptTitle {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0;
@@ -451,134 +496,107 @@
 .closeBtn {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 17px;
   color: #888;
   cursor: pointer;
 }
 
 .closeBtn:hover { color: #333; }
 
-.receiptOrder {
+.receiptOrderRow {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #eee;
 }
 
 .receiptOrderId {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #1a1a1a;
-  margin: 0 0 4px;
+  margin: 0 0 3px;
 }
 
-.receiptMeta {
-  font-size: 12px;
-  color: #888;
-  margin: 0;
-}
+.receiptMeta { font-size: 12px; color: #888; margin: 0; }
 
 .receiptBadge {
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   flex-shrink: 0;
-}
-
-.receiptItemsTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 12px;
+  max-width: 120px;
+  text-align: center;
 }
 
 .receiptItems {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-  max-height: 240px;
+  gap: 10px;
+  margin-bottom: 16px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
 .receiptItem {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  padding: 8px 10px;
+  background: #f9f9f9;
+  border-radius: 8px;
 }
 
-.receiptItemImg {
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  background: #e8e8e8;
-  flex-shrink: 0;
-}
-
-.receiptItemInfo { flex: 1; }
+.receiptItemInfo { display: flex; flex-direction: column; gap: 2px; }
 
 .receiptItemName {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #1a1a1a;
-  margin: 0 0 2px;
-}
-
-.receiptItemQty {
-  font-size: 12px;
-  color: #888;
   margin: 0;
 }
+
+.receiptItemQty { font-size: 12px; color: #888; margin: 0; }
 
 .receiptItemPrice {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
-  white-space: nowrap;
 }
 
 .receiptTotal {
   display: flex;
   justify-content: space-between;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: #1a1a1a;
-  padding: 16px 0;
+  padding: 14px 0;
   border-top: 1px solid #eee;
   border-bottom: 1px solid #eee;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
-.receiptPayment {
+.receiptPaymentRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
 
-.receiptPaymentLabel {
-  font-size: 13px;
-  color: #888;
-}
+.receiptPaymentLabel { font-size: 13px; color: #888; }
 
 .paymentBadge {
-  padding: 4px 14px;
+  padding: 3px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
 }
 
-.paid { background: #ff7a00; color: white; }
-.unpaid { background: #f0f0f0; color: #888; }
-
-.receiptActions { display: flex; gap: 10px; }
-
 .closeReceiptBtn {
-  flex: 1;
+  width: 100%;
   padding: 12px;
   border-radius: 10px;
   border: none;
