@@ -6,17 +6,16 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// Kitchen fetches all orders — backend already filters to kitchen-station items only
+// Kitchen sees orders with status "waiting" or "preparing" or "ready"
+// kitchen_status !== "not_required"
 export const getKitchenOrders = () =>
   API.get("/orders/");
 
-// Sets kitchen_status = "preparing" on the order
+// Sets kitchen_status = "preparing"
 export const markPreparing = (id) =>
   API.post(`/orders/${id}/kitchen_update/`, { status: "preparing" });
 
-// Sets kitchen_status = "ready" on the order
-// Note: if bar items also exist, order.status stays "preparing" until bar is ready too
-// We use kitchen_status field directly in the UI to handle this correctly
+// Sets kitchen_status = "ready"
 export const markReady = (id) =>
   API.post(`/orders/${id}/kitchen_update/`, { status: "ready" });
 

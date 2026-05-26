@@ -3,12 +3,14 @@ import { getOrders } from "../../../services/staffApi";
 import styles from "./ReadyToServe.module.css";
 
 export default function ReadyToServe() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,    setOrders]    = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [serving,   setServing]   = useState(null);
+  const [servedIds, setServedIds] = useState(new Set());
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000);
+    const interval = setInterval(fetchOrders, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -24,11 +26,21 @@ export default function ReadyToServe() {
     }
   }
 
+  // Mark an order as served locally — waiter confirms they delivered it
+  // The order stays in "ready" status in the backend (cashier handles final close)
+  // but we hide it from this view so waiter doesn't double-serve
+  function handleMarkServed(orderId) {
+    setServing(orderId);
+    setTimeout(() => {
+      setServedIds(prev => new Set([...prev, orderId]));
+      setServing(null);
+    }, 600);
+  }
+
+  const displayOrders = orders.filter(o => !servedIds.has(o.id));
+
   const today = new Date().toLocaleDateString("en-PH", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   if (loading) return (
@@ -42,19 +54,33 @@ export default function ReadyToServe() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Ready to Serve</h1>
-          <p className={styles.sub}>Ready to Served Orders</p>
+          <p className={styles.sub}>
+            Orders prepared and waiting to be delivered to the table
+          </p>
         </div>
         <span className={styles.date}>{today}</span>
       </div>
 
+      {/* SERVED COUNT */}
+      {servedIds.size > 0 && (
+        <div className={styles.servedBanner}>
+          ✅ {servedIds.size} order{servedIds.size !== 1 ? "s" : ""} marked as served this session
+        </div>
+      )}
+
       {/* ORDERS */}
-      {orders.length === 0 ? (
+      {displayOrders.length === 0 ? (
         <div className={styles.empty}>
           <p>🎉 No orders waiting to be served.</p>
+          {servedIds.size > 0 && (
+            <p style={{ fontSize: "14px", color: "#aaa", marginTop: "8px" }}>
+              {servedIds.size} order{servedIds.size !== 1 ? "s" : ""} delivered this session.
+            </p>
+          )}
         </div>
       ) : (
         <div className={styles.list}>
-          {orders.map(order => (
+          {displayOrders.map(order => (
             <div key={order.id} className={styles.card}>
 
               {/* LEFT */}
@@ -67,8 +93,7 @@ export default function ReadyToServe() {
                 </p>
                 <p className={styles.time}>
                   {new Date(order.created_at).toLocaleTimeString("en-PH", {
-                    hour: "2-digit",
-                    minute: "2-digit",
+                    hour: "2-digit", minute: "2-digit",
                   })}
                 </p>
               </div>
@@ -81,7 +106,7 @@ export default function ReadyToServe() {
                 <div className={styles.itemsList}>
                   {order.items?.slice(0, 4).map(item => (
                     <span key={item.id} className={styles.itemChip}>
-                      {item.item_name}
+                      {item.item_name} ×{item.quantity}
                     </span>
                   ))}
                   {order.items?.length > 4 && (
@@ -98,6 +123,13 @@ export default function ReadyToServe() {
                 <p className={styles.total}>
                   ₱{Number(order.total_amount).toFixed(2)}
                 </p>
+                <button
+                  className={styles.serveBtn}
+                  onClick={() => handleMarkServed(order.id)}
+                  disabled={serving === order.id}
+                >
+                  {serving === order.id ? "✓ Serving..." : "Mark as Served"}
+                </button>
               </div>
 
             </div>

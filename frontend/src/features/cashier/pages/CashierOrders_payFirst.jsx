@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
-import { getCashierOrders, markPaymentPending, markPaid } from "../../../services/cashierApi";
+import {
+  getCashierOrders,
+  confirmPaymentAndSendToKitchen,
+  markCashierPaid,
+} from "../../../services/cashierApi";
 import styles from "./CashierOrders_payFirst.module.css";
 
 export default function CashierOrders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(null);
+  const [orders,       setOrders]       = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [processing,   setProcessing]   = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [activeTab, setActiveTab] = useState("new");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [activeTab,    setActiveTab]    = useState("new");
+  const [errorMsg,     setErrorMsg]     = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -20,7 +24,6 @@ export default function CashierOrders() {
     try {
       const res = await getCashierOrders();
       setOrders(res.data);
-      // Refresh selected order if open
       if (selectedOrder) {
         const updated = res.data.find(o => o.id === selectedOrder.id);
         if (updated) setSelectedOrder(updated);
@@ -32,84 +35,83 @@ export default function CashierOrders() {
     }
   }
 
-  async function handleMarkPaymentPending(order) {
+  // Confirm payment → sends order to kitchen (status: pending → waiting)
+  async function handleConfirmPayment(order) {
     setProcessing(order.id);
     setErrorMsg("");
     try {
-      await markPaymentPending(order.id);
+      await confirmPaymentAndSendToKitchen(order.id);
       await fetchOrders();
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to request payment. Please try again.");
+      setErrorMsg(
+        err.response?.data?.detail ||
+        err.response?.data?.non_field_errors?.[0] ||
+        "Failed to confirm payment."
+      );
     } finally {
       setProcessing(null);
     }
   }
 
+  // Mark cashier_status as paid (for record keeping after order is done)
   async function handleMarkPaid(order) {
     setProcessing(order.id);
     setErrorMsg("");
     try {
-      await markPaid(order.id);
+      await markCashierPaid(order.id);
       await fetchOrders();
-      setSelectedOrder(null);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to confirm payment. Please try again.");
+      setErrorMsg("Failed to update payment status.");
     } finally {
       setProcessing(null);
     }
   }
 
-  // PAY-FIRST FLOW:
-  // placed        → cashier sees it, requests payment
-  // payment_pending → customer pays, cashier confirms
-  // paid          → kitchen gets notified and starts preparing
-  // preparing     → kitchen working
-  // ready         → food is ready, waiter serves
-
-  const newOrders      = orders.filter(o => o.status === "placed");
-  const pendingOrders  = orders.filter(o => o.status === "payment_pending");
-  const paidOrders     = orders.filter(o => o.status === "paid");
-  const inKitchen      = orders.filter(o => ["preparing", "ready"].includes(o.status));
-  const completedOrders = orders.filter(o => o.status === "paid" &&
-    ["ready", "not_required"].includes(o.kitchen_status));
+  // New flow:
+  // pending         = order placed, cashier_status=awaiting_payment → cashier sees it first
+  // waiting         = cashier confirmed payment → kitchen queue
+  // preparing       = kitchen started
+  // ready           = food ready, waiter serves
+  const newOrders      = orders.filter(o => o.status === "pending");
+  const inKitchen      = orders.filter(o => ["waiting", "preparing"].includes(o.status));
+  const readyOrders    = orders.filter(o => o.status === "ready");
+  const doneOrders     = orders.filter(o => o.status === "cancelled");
 
   const tabConfig = [
     {
-      key: "new",
-      label: "New Orders",
-      orders: newOrders,
-      badgeColor: "#ff7a00",
-      description: "New orders waiting for payment request",
+      key:         "new",
+      label:       "New Orders",
+      orders:      newOrders,
+      badgeColor:  "#4a6cf7",
+      description: "New orders waiting for payment confirmation",
     },
     {
-      key: "payment_pending",
-      label: "Awaiting Payment",
-      orders: pendingOrders,
-      badgeColor: "#4a6cf7",
-      description: "Payment requested — waiting for customer to pay",
-    },
-    {
-      key: "in_kitchen",
-      label: "In Kitchen",
-      orders: inKitchen,
-      badgeColor: "#f59e0b",
+      key:         "in_kitchen",
+      label:       "In Kitchen",
+      orders:      inKitchen,
+      badgeColor:  "#f59e0b",
       description: "Paid and being prepared",
     },
     {
-      key: "history",
-      label: "Done",
-      orders: paidOrders.filter(o =>
-        o.kitchen_status === "ready" || o.kitchen_status === "not_required"
-      ),
-      badgeColor: "#28a745",
-      description: "Fully completed orders",
+      key:         "ready",
+      label:       "Ready",
+      orders:      readyOrders,
+      badgeColor:  "#28a745",
+      description: "Ready to be served",
+    },
+    {
+      key:         "done",
+      label:       "Cancelled",
+      orders:      doneOrders,
+      badgeColor:  "#e53e3e",
+      description: "Cancelled orders",
     },
   ];
 
   const activeTabConfig = tabConfig.find(t => t.key === activeTab);
-  const displayOrders = activeTabConfig?.orders || [];
+  const displayOrders   = activeTabConfig?.orders || [];
 
   const today = new Date().toLocaleDateString("en-PH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -117,23 +119,23 @@ export default function CashierOrders() {
 
   function getStatusStyle(status) {
     switch (status) {
-      case "placed":          return { bg: "#fff4ea", color: "#ff7a00" };
-      case "payment_pending": return { bg: "#eef2ff", color: "#4a6cf7" };
-      case "paid":            return { bg: "#e6f4ea", color: "#28a745" };
-      case "preparing":       return { bg: "#fff8e1", color: "#f59e0b" };
-      case "ready":           return { bg: "#e6f4ea", color: "#28a745" };
-      default:                return { bg: "#f0f0f0", color: "#888" };
+      case "pending":   return { bg: "#eef2ff", color: "#4a6cf7" };
+      case "waiting":   return { bg: "#e6f4ea", color: "#28a745" };
+      case "preparing": return { bg: "#fff8e1", color: "#f59e0b" };
+      case "ready":     return { bg: "#e6f4ea", color: "#28a745" };
+      case "cancelled": return { bg: "#fce8e8", color: "#e53e3e" };
+      default:          return { bg: "#f0f0f0", color: "#888"    };
     }
   }
 
   function getStatusLabel(status) {
     switch (status) {
-      case "placed":          return "New";
-      case "payment_pending": return "Awaiting Payment";
-      case "paid":            return "Paid";
-      case "preparing":       return "In Kitchen";
-      case "ready":           return "Ready";
-      default:                return status;
+      case "pending":   return "Awaiting Payment";
+      case "waiting":   return "Paid — In Queue";
+      case "preparing": return "Preparing";
+      case "ready":     return "Ready";
+      case "cancelled": return "Cancelled";
+      default:          return status;
     }
   }
 
@@ -146,7 +148,9 @@ export default function CashierOrders() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Orders</h1>
-          <p className={styles.sub}>Pay first — then kitchen prepares</p>
+          <p className={styles.sub}>
+            Confirm payment first — then kitchen prepares
+          </p>
         </div>
         <span className={styles.date}>{today}</span>
       </div>
@@ -154,11 +158,10 @@ export default function CashierOrders() {
       {/* FLOW GUIDE */}
       <div className={styles.flowGuide}>
         {[
-          { icon: "🧾", label: "Order Placed",    active: newOrders.length > 0 },
-          { icon: "💳", label: "Request Payment", active: false },
-          { icon: "✅", label: "Payment Confirmed", active: false },
-          { icon: "🍳", label: "Kitchen Prepares", active: false },
-          { icon: "🍽️", label: "Ready to Serve",  active: false },
+          { icon: "🧾", label: "Order Placed",       active: newOrders.length > 0     },
+          { icon: "💳", label: "Confirm Payment",     active: false                    },
+          { icon: "🍳", label: "Kitchen Prepares",    active: inKitchen.length > 0     },
+          { icon: "🍽️", label: "Ready to Serve",     active: readyOrders.length > 0   },
         ].map((step, i) => (
           <div key={i} className={styles.flowStep}>
             <div className={`${styles.flowDot} ${step.active ? styles.flowDotActive : ""}`}>
@@ -167,7 +170,7 @@ export default function CashierOrders() {
             <span className={`${styles.flowLabel} ${step.active ? styles.flowLabelActive : ""}`}>
               {step.label}
             </span>
-            {i < 4 && <div className={styles.flowArrow}>→</div>}
+            {i < 3 && <div className={styles.flowArrow}>→</div>}
           </div>
         ))}
       </div>
@@ -210,7 +213,6 @@ export default function CashierOrders() {
             ))}
           </div>
 
-          {/* TAB DESCRIPTION */}
           <p className={styles.tabDesc}>{activeTabConfig?.description}</p>
 
           {/* ORDER LIST */}
@@ -252,7 +254,8 @@ export default function CashierOrders() {
 
                     <div className={styles.cardBottom}>
                       <span className={styles.itemCount}>
-                        {order.items?.length} item{order.items?.length !== 1 ? "s" : ""}
+                        {order.items?.length} item
+                        {order.items?.length !== 1 ? "s" : ""}
                       </span>
                       <span className={styles.orderTotal}>
                         ₱{Number(order.total_amount).toFixed(2)}
@@ -278,7 +281,7 @@ export default function CashierOrders() {
                   className={styles.statusBadge}
                   style={{
                     background: getStatusStyle(selectedOrder.status).bg,
-                    color: getStatusStyle(selectedOrder.status).color,
+                    color:      getStatusStyle(selectedOrder.status).color,
                   }}
                 >
                   {getStatusLabel(selectedOrder.status)}
@@ -308,7 +311,7 @@ export default function CashierOrders() {
                       </p>
                     </div>
                     <div className={styles.itemRight}>
-                      <span className={styles.itemQty}>x{item.quantity}</span>
+                      <span className={styles.itemQty}>×{item.quantity}</span>
                       <p className={styles.itemPrice}>
                         ₱{(item.unit_price * item.quantity).toFixed(2)}
                       </p>
@@ -324,63 +327,49 @@ export default function CashierOrders() {
                 </span>
               </div>
 
-              {/* ACTIONS based on status */}
+              {/* ACTIONS */}
               <div className={styles.actions}>
 
-                {/* Step 1: New order → request payment */}
-                {selectedOrder.status === "placed" && (
+                {/* New order → confirm payment → sends to kitchen */}
+                {selectedOrder.status === "pending" && (
                   <div className={styles.actionBlock}>
                     <p className={styles.actionHint}>
-                      Ask the customer to pay before the kitchen starts.
+                      Collect payment from the customer, then confirm below.
+                      This will send the order to the kitchen.
                     </p>
                     <button
-                      className={styles.paymentPendingBtn}
-                      onClick={() => handleMarkPaymentPending(selectedOrder)}
+                      className={styles.confirmPaymentBtn}
+                      onClick={() => handleConfirmPayment(selectedOrder)}
                       disabled={processing === selectedOrder.id}
                     >
                       {processing === selectedOrder.id
                         ? "Processing..."
-                        : "💳 Request Payment"}
+                        : "✅ Confirm Payment & Send to Kitchen"}
                     </button>
                   </div>
                 )}
 
-                {/* Step 2: Payment pending → confirm paid */}
-                {selectedOrder.status === "payment_pending" && (
-                  <div className={styles.actionBlock}>
-                    <p className={styles.actionHint}>
-                      Confirm payment received — this will send the order to the kitchen.
-                    </p>
-                    <button
-                      className={styles.paidBtn}
-                      onClick={() => handleMarkPaid(selectedOrder)}
-                      disabled={processing === selectedOrder.id}
-                    >
-                      {processing === selectedOrder.id
-                        ? "Confirming..."
-                        : "✅ Confirm Payment Received"}
-                    </button>
-                  </div>
-                )}
-
-                {/* Paid — kitchen is working */}
-                {selectedOrder.status === "paid" && (
+                {selectedOrder.status === "waiting" && (
                   <div className={styles.kitchenNote}>
-                    ✅ Payment confirmed — order sent to kitchen.
+                    ✅ Payment confirmed — order is in the kitchen queue.
                   </div>
                 )}
 
-                {/* In kitchen */}
                 {selectedOrder.status === "preparing" && (
                   <div className={styles.inProgressNote}>
                     🍳 Kitchen is currently preparing this order.
                   </div>
                 )}
 
-                {/* Ready */}
                 {selectedOrder.status === "ready" && (
                   <div className={styles.readyNote}>
                     🍽️ Order is ready — notify the waiter to serve.
+                  </div>
+                )}
+
+                {selectedOrder.status === "cancelled" && (
+                  <div className={styles.cancelledNote}>
+                    ❌ This order was cancelled.
                   </div>
                 )}
 

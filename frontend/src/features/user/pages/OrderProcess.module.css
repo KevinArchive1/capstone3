@@ -609,3 +609,33 @@
 }
 
 .closeReceiptBtn:hover { background: #e06900; }
+
+.orderActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cancelOrderBtn {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #e53e3e;
+  background: white;
+  color: #e53e3e;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.cancelOrderBtn:hover {
+  background: #e53e3e;
+  color: white;
+}
+
+.cancelOrderBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

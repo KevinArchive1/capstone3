@@ -1,26 +1,37 @@
 import { useEffect, useState } from "react";
-import { getTables, markTableVacant } from "../../../services/staffApi";
+import {
+  getTables,
+  getTableSessions,
+  closeTableSession,
+  markTableVacant,
+} from "../../../services/staffApi";
 import styles from "./StaffTables.module.css";
 
 export default function StaffTables() {
-  const [tables, setTables] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [processing, setProcessing] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [tables,        setTables]        = useState([]);
+  const [sessions,      setSessions]      = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [selected,      setSelected]      = useState(null);
+  const [processing,    setProcessing]    = useState(null);
+  const [refreshing,    setRefreshing]    = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [errorMsg,      setErrorMsg]      = useState("");
 
   useEffect(() => {
-    fetchTables();
-    const interval = setInterval(fetchTables, 15000);
+    fetchAll();
+    const interval = setInterval(fetchAll, 15000);
     return () => clearInterval(interval);
   }, []);
 
-  async function fetchTables() {
+  async function fetchAll() {
     setRefreshing(true);
     try {
-      const res = await getTables();
-      setTables(res.data);
+      const [tableRes, sessionRes] = await Promise.all([
+        getTables(),
+        getTableSessions(),
+      ]);
+      setTables(tableRes.data);
+      setSessions(sessionRes.data);
       setLastRefreshed(new Date());
     } catch (err) {
       console.error(err);
@@ -30,15 +41,31 @@ export default function StaffTables() {
     }
   }
 
+  // Find the active session for a given table
+  function getActiveSession(tableId) {
+    return sessions.find(s => s.table === tableId && s.is_active);
+  }
+
   async function handleEndSession(table) {
     setProcessing(table.id);
+    setErrorMsg("");
     try {
-      await markTableVacant(table.id);
-      fetchTables();
+      const activeSession = getActiveSession(table.id);
+
+      if (activeSession) {
+        // Correctly close the session first — this also clears guest ownership
+        // so the table can be claimed by someone else
+        await closeTableSession(activeSession.id);
+      } else {
+        // Fallback: no session found, just mark table vacant
+        await markTableVacant(table.id);
+      }
+
+      await fetchAll();
       setSelected(null);
     } catch (err) {
       console.error(err);
-      alert("Failed to end session.");
+      setErrorMsg("Failed to end session. Please try again.");
     } finally {
       setProcessing(null);
     }
@@ -48,10 +75,7 @@ export default function StaffTables() {
   const vacantTables = tables.filter(t => t.status === "vacant");
 
   const today = new Date().toLocaleDateString("en-PH", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   if (loading) return (
@@ -65,13 +89,17 @@ export default function StaffTables() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Tables</h1>
-          <p className={styles.sub}>See what's the Standing QR Table Status</p>
+          <p className={styles.sub}>QR Table Status</p>
         </div>
         <div className={styles.headerRight}>
           <span className={styles.date}>{today}</span>
           {lastRefreshed && (
             <span className={styles.refreshStatus}>
-              {refreshing ? "⟳ Refreshing..." : `Updated ${lastRefreshed.toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`}
+              {refreshing
+                ? "⟳ Refreshing..."
+                : `Updated ${lastRefreshed.toLocaleTimeString("en-PH", {
+                    hour: "2-digit", minute: "2-digit", second: "2-digit",
+                  })}`}
             </span>
           )}
           <div className={styles.legend}>
@@ -81,12 +109,17 @@ export default function StaffTables() {
             <span className={styles.legendItem}>
               <span className={`${styles.dot} ${styles.occupiedDot}`} /> Occupied
             </span>
-            <span className={styles.legendItem}>
-              <span className={`${styles.dot} ${styles.mergedDot}`} /> Merged
-            </span>
           </div>
         </div>
       </div>
+
+      {/* ERROR BANNER */}
+      {errorMsg && (
+        <div className={styles.errorBanner}>
+          ⚠️ {errorMsg}
+          <button className={styles.errorClose} onClick={() => setErrorMsg("")}>✕</button>
+        </div>
+      )}
 
       <div className={styles.layout}>
 
@@ -99,26 +132,41 @@ export default function StaffTables() {
             <span className={styles.count}>{activeTables.length}</span>
           </h3>
           <div className={styles.tableGrid}>
-            {activeTables.map(table => (
-              <div
-                key={table.id}
-                className={`${styles.tableCard} ${styles.occupied} ${selected?.id === table.id ? styles.selectedCard : ""}`}
-                onClick={() => setSelected(table)}
-              >
-                <div className={styles.tableTop}>
-                  <span className={styles.tableId}>{table.identifier}</span>
-                  <span className={styles.tableZone}>{table.zone || "—"}</span>
+            {activeTables.map(table => {
+              const session = getActiveSession(table.id);
+              return (
+                <div
+                  key={table.id}
+                  className={`${styles.tableCard} ${styles.occupied} ${
+                    selected?.id === table.id ? styles.selectedCard : ""
+                  }`}
+                  onClick={() => setSelected(table)}
+                >
+                  <div className={styles.tableTop}>
+                    <span className={styles.tableId}>{table.identifier}</span>
+                    <span className={styles.tableZone}>{table.zone || "—"}</span>
+                  </div>
+                  <div className={styles.tableBottom}>
+                    <span className={styles.tableCapacity}>
+                      👤 {table.capacity}
+                    </span>
+                    <span className={`${styles.statusBadge} ${styles.occupiedBadge}`}>
+                      Occupied
+                    </span>
+                  </div>
+                  {session && (
+                    <div className={styles.sessionInfo}>
+                      Party of {session.party_size} •{" "}
+                      {session.guest_label
+                        ? "Guest"
+                        : session.customer_account
+                          ? "Member"
+                          : "Walk-in"}
+                    </div>
+                  )}
                 </div>
-                <div className={styles.tableBottom}>
-                  <span className={styles.tableCapacity}>
-                    👤 {table.capacity}
-                  </span>
-                  <span className={`${styles.statusBadge} ${styles.occupiedBadge}`}>
-                    Occupied
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {activeTables.length === 0 && (
               <p className={styles.empty}>No occupied tables.</p>
             )}
@@ -133,7 +181,9 @@ export default function StaffTables() {
             {vacantTables.map(table => (
               <div
                 key={table.id}
-                className={`${styles.tableCard} ${styles.vacant} ${selected?.id === table.id ? styles.selectedCard : ""}`}
+                className={`${styles.tableCard} ${styles.vacant} ${
+                  selected?.id === table.id ? styles.selectedCard : ""
+                }`}
                 onClick={() => setSelected(table)}
               >
                 <div className={styles.tableTop}>
@@ -154,10 +204,9 @@ export default function StaffTables() {
               <p className={styles.empty}>No vacant tables.</p>
             )}
           </div>
-
         </div>
 
-        {/* TABLE DETAIL PANEL */}
+        {/* DETAIL PANEL */}
         {selected && (
           <div className={styles.detailPanel}>
             <div className={styles.detailHeader}>
@@ -175,7 +224,13 @@ export default function StaffTables() {
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Table</span>
                 <span className={styles.detailValue}>{selected.identifier}</span>
-                <span className={`${styles.statusBadge} ${selected.status === "occupied" ? styles.occupiedBadge : styles.vacantBadge}`}>
+                <span
+                  className={`${styles.statusBadge} ${
+                    selected.status === "occupied"
+                      ? styles.occupiedBadge
+                      : styles.vacantBadge
+                  }`}
+                >
                   {selected.status}
                 </span>
               </div>
@@ -190,33 +245,60 @@ export default function StaffTables() {
                 <span className={styles.detailValue}>{selected.zone || "—"}</span>
               </div>
 
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Status</span>
-                <span className={styles.detailValue} style={{ textTransform: "capitalize" }}>
-                  {selected.status}
-                </span>
-              </div>
+              {/* Show session info if occupied */}
+              {selected.status === "occupied" && (() => {
+                const session = getActiveSession(selected.id);
+                return session ? (
+                  <>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Party</span>
+                      <span className={styles.detailValue}>
+                        {session.party_size} person{session.party_size !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Type</span>
+                      <span className={styles.detailValue}>
+                        {session.guest_label
+                          ? "Guest"
+                          : session.customer_account
+                            ? "Member"
+                            : "Walk-in"}
+                      </span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Since</span>
+                      <span className={styles.detailValue}>
+                        {new Date(session.started_at).toLocaleTimeString("en-PH", {
+                          hour: "2-digit", minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </>
+                ) : null;
+              })()}
 
               <hr className={styles.divider} />
 
               <h4 className={styles.actionsTitle}>Actions</h4>
 
               <div className={styles.actionList}>
-                <button
-                  className={styles.actionBtn}
-                  onClick={() => window.location.href = `/staff/orders?table=${selected.identifier}`}
-                >
-                  📋 View Order History
-                </button>
-
                 {selected.status === "occupied" && (
                   <button
                     className={styles.endSessionBtn}
                     onClick={() => handleEndSession(selected)}
                     disabled={processing === selected.id}
                   >
-                    {processing === selected.id ? "Ending..." : "🔴 End Session"}
+                    {processing === selected.id
+                      ? "Ending session..."
+                      : "🔴 End Session & Clear Table"}
                   </button>
+                )}
+
+                {selected.status === "vacant" && (
+                  <div className={styles.vacantNote}>
+                    ✅ Table is vacant and ready for new guests.
+                  </div>
                 )}
               </div>
             </div>

@@ -5,11 +5,11 @@ import { getKitchenOrders, getIngredients } from "../../../services/kitchenApi";
 import styles from "./KitchenDashboard.module.css";
 
 export default function KitchenDashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
+  const { user }    = useAuth();
+  const navigate    = useNavigate();
+  const [orders,      setOrders]      = useState([]);
   const [ingredients, setIngredients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading,     setLoading]     = useState(true);
 
   useEffect(() => {
     fetchAll();
@@ -19,12 +19,16 @@ export default function KitchenDashboard() {
 
   async function fetchAll() {
     try {
-      const [orderRes, ingredientRes] = await Promise.all([
+      const [orderRes, ingRes] = await Promise.all([
         getKitchenOrders(),
         getIngredients(),
       ]);
-      setOrders(orderRes.data);
-      setIngredients(ingredientRes.data);
+      // Filter to kitchen-relevant orders only
+      const kitchenOrders = orderRes.data.filter(
+        o => o.kitchen_status !== "not_required"
+      );
+      setOrders(kitchenOrders);
+      setIngredients(ingRes.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -32,16 +36,16 @@ export default function KitchenDashboard() {
     }
   }
 
-  const pendingOrders = orders.filter(o => o.status === "placed");
-  const preparingOrders = orders.filter(o => o.status === "preparing");
-  const readyOrders = orders.filter(o => o.status === "ready");
-  const lowStock = ingredients.filter(i => parseFloat(i.available_quantity) <= parseFloat(i.reorder_level));
+  // New status names: waiting = paid & queued for kitchen
+  const queuedOrders   = orders.filter(o => o.kitchen_status === "pending");
+  const preparingOrders = orders.filter(o => o.kitchen_status === "preparing");
+  const readyOrders    = orders.filter(o => o.kitchen_status === "ready");
+  const lowStock       = ingredients.filter(
+    i => parseFloat(i.available_quantity) <= parseFloat(i.reorder_level)
+  );
 
   const today = new Date().toLocaleDateString("en-PH", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   if (loading) return <div className={styles.loading}>Loading...</div>;
@@ -49,32 +53,35 @@ export default function KitchenDashboard() {
   return (
     <div className={styles.page}>
 
-      {/* HEADER */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.greeting}>
             Good morning, {user?.first_name || user?.username}!
           </h1>
-          <p className={styles.sub}>
-            Here's what's cooking today.
-          </p>
+          <p className={styles.sub}>Here's what's cooking today.</p>
         </div>
         <span className={styles.date}>{today}</span>
       </div>
 
       {/* STAT CARDS */}
       <div className={styles.stats}>
-        <div className={styles.statCard} onClick={() => navigate("/kitchen/orders")}>
+        <div
+          className={styles.statCard}
+          onClick={() => navigate("/kitchen/orders")}
+        >
           <div className={styles.statIcon}>🆕</div>
           <div>
-            <p className={styles.statLabel}>Pending</p>
-            <h2 className={styles.statValue}>{pendingOrders.length}</h2>
-            <p className={styles.statSub}>Waiting to be prepared</p>
+            <p className={styles.statLabel}>In Queue</p>
+            <h2 className={styles.statValue}>{queuedOrders.length}</h2>
+            <p className={styles.statSub}>Paid — waiting to start</p>
           </div>
-          {pendingOrders.length > 0 && <span className={styles.dot} />}
+          {queuedOrders.length > 0 && <span className={styles.dot} />}
         </div>
 
-        <div className={styles.statCard} onClick={() => navigate("/kitchen/orders")}>
+        <div
+          className={styles.statCard}
+          onClick={() => navigate("/kitchen/orders")}
+        >
           <div className={styles.statIcon}>👨‍🍳</div>
           <div>
             <p className={styles.statLabel}>Preparing</p>
@@ -83,16 +90,22 @@ export default function KitchenDashboard() {
           </div>
         </div>
 
-        <div className={styles.statCard} onClick={() => navigate("/kitchen/orders")}>
+        <div
+          className={styles.statCard}
+          onClick={() => navigate("/kitchen/orders")}
+        >
           <div className={styles.statIcon}>✅</div>
           <div>
-            <p className={styles.statLabel}>Ready</p>
+            <p className={styles.statLabel}>Done</p>
             <h2 className={styles.statValue}>{readyOrders.length}</h2>
-            <p className={styles.statSub}>Waiting to be served</p>
+            <p className={styles.statSub}>Waiting for waiter</p>
           </div>
         </div>
 
-        <div className={styles.statCard} onClick={() => navigate("/kitchen/inventory")}>
+        <div
+          className={styles.statCard}
+          onClick={() => navigate("/kitchen/inventory")}
+        >
           <div className={styles.statIcon}>⚠️</div>
           <div>
             <p className={styles.statLabel}>Low Stock</p>
@@ -106,33 +119,33 @@ export default function KitchenDashboard() {
       {/* BOTTOM GRID */}
       <div className={styles.grid}>
 
-        {/* PENDING ORDERS */}
+        {/* QUEUED ORDERS */}
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>
-            Pending Orders
-            <span className={styles.badge}>{pendingOrders.length}</span>
+            In Queue
+            <span className={styles.badge}>{queuedOrders.length}</span>
           </h3>
           <div className={styles.orderList}>
-            {pendingOrders.slice(0, 5).map(order => (
+            {queuedOrders.slice(0, 5).map(order => (
               <div key={order.id} className={styles.orderItem}>
                 <div className={styles.orderLeft}>
                   <p className={styles.orderNumber}>
                     #{order.receipt_number?.slice(-6)}
                   </p>
                   <p className={styles.orderNote}>
-                    {order.notes || "—"}
+                    {order.notes?.replace("Table: ", "Table ") || "—"}
                   </p>
                 </div>
                 <div className={styles.orderRight}>
                   <p className={styles.orderItems}>
-                    {order.items?.length} item{order.items?.length !== 1 ? "s" : ""}
+                    {order.items?.filter(i => i.station === "kitchen").length} item(s)
                   </p>
-                  <span className={styles.pendingBadge}>Pending</span>
+                  <span className={styles.pendingBadge}>Queued</span>
                 </div>
               </div>
             ))}
-            {pendingOrders.length === 0 && (
-              <p className={styles.empty}>No pending orders.</p>
+            {queuedOrders.length === 0 && (
+              <p className={styles.empty}>No orders in queue.</p>
             )}
           </div>
         </div>
@@ -166,10 +179,10 @@ export default function KitchenDashboard() {
           </div>
         </div>
 
-        {/* RECENT READY */}
+        {/* DONE */}
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>
-            Ready to Serve
+            Done — Awaiting Waiter
             <span className={styles.badgeGreen}>{readyOrders.length}</span>
           </h3>
           <div className={styles.orderList}>
@@ -180,7 +193,7 @@ export default function KitchenDashboard() {
                     #{order.receipt_number?.slice(-6)}
                   </p>
                   <p className={styles.orderNote}>
-                    {order.notes || "—"}
+                    {order.notes?.replace("Table: ", "Table ") || "—"}
                   </p>
                 </div>
                 <div className={styles.orderRight}>
@@ -189,7 +202,7 @@ export default function KitchenDashboard() {
               </div>
             ))}
             {readyOrders.length === 0 && (
-              <p className={styles.empty}>No orders ready yet.</p>
+              <p className={styles.empty}>No orders done yet.</p>
             )}
           </div>
         </div>

@@ -242,3 +242,36 @@
   text-align: center;
   padding: 20px 0;
 }
+
+/* New status badge classes */
+.waiting   { background: #e6f4ea; color: #28a745; }
+.preparing { background: #fff8e1; color: #f59e0b; }
+.cancelled { background: #fce8e8; color: #e53e3e; }
+
+.badgeBlue {
+  background: #eef2ff;
+  color: #4a6cf7;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.badgeOrange {
+  background: #fff4ea;
+  color: #ff7a00;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.dotBlue {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a6cf7;
+}

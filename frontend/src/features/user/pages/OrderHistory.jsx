@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
 import API from "../../../services/api";
 import styles from "./OrderHistory.module.css";
 
 function StatusBadge({ status }) {
   const map = {
-    placed:          { label: "Placed",          bg: "#fff4ea", color: "#ff7a00" },
-    payment_pending: { label: "Awaiting Payment", bg: "#eef2ff", color: "#4a6cf7" },
-    paid:            { label: "Paid",             bg: "#e6f4ea", color: "#28a745" },
-    preparing:       { label: "Preparing",        bg: "#fff8e1", color: "#f59e0b" },
-    ready:           { label: "Ready",            bg: "#fff4ea", color: "#ff7a00" },
-    cancelled:       { label: "Cancelled",        bg: "#fce8e8", color: "#e53e3e" },
-    draft:           { label: "Draft",            bg: "#f0f0f0", color: "#888"    },
+    placed:          { label: "Placed",           bg: "#fff4ea", color: "#ff7a00" },
+    payment_pending: { label: "Awaiting Payment",  bg: "#eef2ff", color: "#4a6cf7" },
+    paid:            { label: "Paid",              bg: "#e6f4ea", color: "#28a745" },
+    preparing:       { label: "Preparing",         bg: "#fff8e1", color: "#f59e0b" },
+    ready:           { label: "Ready",             bg: "#fff4ea", color: "#ff7a00" },
+    cancelled:       { label: "Cancelled",         bg: "#fce8e8", color: "#e53e3e" },
+    draft:           { label: "Draft",             bg: "#f0f0f0", color: "#888"    },
   };
   const s = map[status] || { label: status, bg: "#f0f0f0", color: "#888" };
   return (
@@ -19,7 +20,6 @@ function StatusBadge({ status }) {
       background: s.bg, color: s.color,
       fontSize: "11px", fontWeight: 700,
       padding: "3px 10px", borderRadius: "20px",
-      textTransform: "capitalize",
     }}>
       {s.label}
     </span>
@@ -27,23 +27,50 @@ function StatusBadge({ status }) {
 }
 
 export default function OrderHistory() {
-  const navigate = useNavigate();
-  const [actionLogs, setActionLogs]   = useState([]);
-  const [orders,     setOrders]       = useState([]);
-  const [loading,    setLoading]      = useState(true);
-  const [error,      setError]        = useState("");
-  const [activeTab,  setActiveTab]    = useState("orders");
+  const navigate       = useNavigate();
+  const { user }       = useAuth();
+  const [orders,       setOrders]      = useState([]);
+  const [actionLogs,   setActionLogs]  = useState([]);
+  const [loading,      setLoading]     = useState(true);
+  const [error,        setError]       = useState("");
+  const [activeTab,    setActiveTab]   = useState("orders");
 
   useEffect(() => {
-    API.get("identity/me/history/")
-      .then(res => {
-        // Backend returns { action_logs: [...], guest_orders_matched_after_registration: [...] }
-        setActionLogs(res.data.action_logs || []);
-        setOrders(res.data.guest_orders_matched_after_registration || []);
-      })
-      .catch(() => setError("Could not load order history. Please try again."))
-      .finally(() => setLoading(false));
-  }, []);
+    if (user) {
+      // Logged-in user — fetch from API
+      API.get("identity/me/history/")
+        .then(res => {
+          setActionLogs(res.data.action_logs || []);
+          setOrders(res.data.guest_orders_matched_after_registration || []);
+        })
+        .catch(() => setError("Could not load history. Please try again."))
+        .finally(() => setLoading(false));
+    } else {
+      // Guest — read tracked order IDs from localStorage then fetch each one
+      const guestOrderIds = JSON.parse(
+        localStorage.getItem("guest_orders") || "[]"
+      );
+      const lastId = localStorage.getItem("last_order_id");
+      const allIds = [...new Set([lastId, ...guestOrderIds].filter(Boolean))];
+
+      if (allIds.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const guestKey = localStorage.getItem("guest_key");
+      Promise.all(
+        allIds.map(id =>
+          API.get(`/orders/${id}/?guest_key=${guestKey}`)
+            .then(r => r.data)
+            .catch(() => null)
+        )
+      )
+        .then(results => setOrders(results.filter(Boolean)))
+        .catch(() => setError("Could not load orders."))
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
 
   const today = new Date().toLocaleDateString("en-PH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -59,38 +86,61 @@ export default function OrderHistory() {
       {/* HEADER */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>My History</h1>
-          <p className={styles.sub}>Your order and activity history</p>
+          <h1 className={styles.title}>
+            {user ? "My History" : "My Orders"}
+          </h1>
+          <p className={styles.sub}>
+            {user
+              ? "Your order and activity history"
+              : "Orders placed from this device"}
+          </p>
         </div>
         <span className={styles.date}>{today}</span>
       </div>
 
+      {/* Guest prompt to register */}
+      {!user && (
+        <div className={styles.guestBanner}>
+          <p>
+            📋 Create an account to keep your full order history across devices.
+          </p>
+          <button
+            className={styles.registerBtn}
+            onClick={() => navigate("/register")}
+          >
+            Create Account
+          </button>
+        </div>
+      )}
+
       {error && <div className={styles.errorBanner}>{error}</div>}
 
-      {/* TABS */}
-      <div className={styles.tabs}>
-        <button
-          className={activeTab === "orders" ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab("orders")}
-        >
-          Orders
-          {orders.length > 0 && (
-            <span className={styles.tabBadge}>{orders.length}</span>
-          )}
-        </button>
-        <button
-          className={activeTab === "activity" ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab("activity")}
-        >
-          Activity Log
-          {actionLogs.length > 0 && (
-            <span className={styles.tabBadge}>{actionLogs.length}</span>
-          )}
-        </button>
-      </div>
+      {/* TABS — only show activity log tab for logged-in users */}
+      {user && (
+        <div className={styles.tabs}>
+          <button
+            className={activeTab === "orders" ? styles.activeTab : styles.tab}
+            onClick={() => setActiveTab("orders")}
+          >
+            Orders
+            {orders.length > 0 && (
+              <span className={styles.tabBadge}>{orders.length}</span>
+            )}
+          </button>
+          <button
+            className={activeTab === "activity" ? styles.activeTab : styles.tab}
+            onClick={() => setActiveTab("activity")}
+          >
+            Activity Log
+            {actionLogs.length > 0 && (
+              <span className={styles.tabBadge}>{actionLogs.length}</span>
+            )}
+          </button>
+        </div>
+      )}
 
-      {/* ORDERS TAB */}
-      {activeTab === "orders" && (
+      {/* ORDERS */}
+      {(activeTab === "orders" || !user) && (
         <div className={styles.section}>
           {orders.length === 0 ? (
             <div className={styles.empty}>
@@ -128,12 +178,6 @@ export default function OrderHistory() {
                     <StatusBadge status={order.status} />
                   </div>
 
-                  {order.placed_for_contact && (
-                    <p className={styles.orderContact}>
-                      📞 {order.placed_for_contact}
-                    </p>
-                  )}
-
                   <div className={styles.orderBottom}>
                     <span className={styles.orderTotal}>
                       ₱{Number(order.total_amount || 0).toFixed(2)}
@@ -147,8 +191,8 @@ export default function OrderHistory() {
         </div>
       )}
 
-      {/* ACTIVITY LOG TAB */}
-      {activeTab === "activity" && (
+      {/* ACTIVITY LOG — logged-in only */}
+      {user && activeTab === "activity" && (
         <div className={styles.section}>
           {actionLogs.length === 0 ? (
             <div className={styles.empty}>

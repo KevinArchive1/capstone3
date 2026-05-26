@@ -1,30 +1,31 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCart } from "../../../context/CartContext";
-import { useAuth } from "../../../context/AuthContext";
+import { useCart }  from "../../../context/CartContext";
+import { useAuth }  from "../../../context/AuthContext";
 import { useTable } from "../../../context/TableContext";
-import TableModal from "../../../components/TableModal";
+import TableModal   from "../../../components/TableModal";
 import {
   createOrder,
   submitOrder,
   getOrder,
   getOrders,
+  cancelOrder,
 } from "../../../services/orderApi";
 import styles from "./OrderProcess.module.css";
 
 // ─── Progress Circle ──────────────────────────────────────────────────────────
 function ProgressCircle({ percent, status }) {
-  const radius = 54;
+  const radius       = 54;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percent / 100) * circumference;
+  const offset       = circumference - (percent / 100) * circumference;
 
   const color =
-    status === "ready"            ? "#28a745" :
-    status === "paid"             ? "#aaa"    :
-    status === "preparing"        ? "#f59e0b" :
-    status === "payment_pending"  ? "#4a6cf7" :
-    status === "placed"           ? "#ff7a00" :
-                                    "#888";
+    status === "ready"     ? "#28a745" :
+    status === "preparing" ? "#f59e0b" :
+    status === "waiting"   ? "#28a745" :
+    status === "pending"   ? "#4a6cf7" :
+    status === "cancelled" ? "#e53e3e" :
+                             "#888";
 
   return (
     <div className={styles.circleWrapper}>
@@ -41,7 +42,7 @@ function ProgressCircle({ percent, status }) {
           transform="rotate(-90 65 65)"
           style={{ transition: "stroke-dashoffset 0.6s ease" }}
         />
-        {(status === "ready" || status === "paid") ? (
+        {status === "ready" ? (
           <text x="65" y="72" textAnchor="middle" fontSize="28" fill={color}>✓</text>
         ) : (
           <text x="65" y="72" textAnchor="middle" fontSize="18" fontWeight="700" fill={color}>
@@ -53,102 +54,110 @@ function ProgressCircle({ percent, status }) {
   );
 }
 
-// ─── Status Config — pay-first flow ──────────────────────────────────────────
-// Flow: placed → payment_pending → paid → preparing → ready
+// ─── Status Config ─────────────────────────────────────────────────────────────
+// New backend flow:
+// draft → pending (submitted) → waiting (cashier confirmed payment)
+//       → preparing (kitchen started) → ready (kitchen done)
+// cashier_status: awaiting_payment → paid
 function getStatusConfig(order) {
   switch (order.status) {
-    case "placed":
+    case "draft":
       return {
-        label: "WAITING FOR PAYMENT",
-        desc:  "Please proceed to the cashier to pay",
-        percent: 20,
-        color:  "#ff7a00",
-        bg:     "#fff4ea",
+        label:     "DRAFT",
+        desc:      "Your order hasn't been submitted yet",
+        percent:   5,
+        color:     "#888",
+        bg:        "#f5f5f5",
+        timeLabel: "Created at",
+        time: new Date(order.created_at).toLocaleTimeString("en-PH", {
+          hour: "2-digit", minute: "2-digit",
+        }),
+      };
+
+    case "pending":
+      return {
+        label:     "WAITING FOR PAYMENT",
+        desc:      "Please proceed to the cashier to pay",
+        percent:   25,
+        color:     "#4a6cf7",
+        bg:        "#eef2ff",
         timeLabel: "Placed at",
         time: new Date(order.created_at).toLocaleTimeString("en-PH", {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-    case "payment_pending":
+
+    case "waiting":
       return {
-        label: "PAYMENT REQUESTED",
-        desc:  "Cashier is processing your payment",
-        percent: 40,
-        color:  "#4a6cf7",
-        bg:     "#eef2ff",
-        timeLabel: "Requested at",
+        label:     "PAID — IN QUEUE",
+        desc:      "Payment confirmed! Your order is queued for the kitchen",
+        percent:   50,
+        color:     "#28a745",
+        bg:        "#e6f4ea",
+        timeLabel: "Confirmed at",
         time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-    case "paid":
-      return {
-        label: "PAID — BEING PREPARED",
-        desc:  "Payment confirmed! Kitchen is now preparing your order",
-        percent: 60,
-        color:  "#28a745",
-        bg:     "#e6f4ea",
-        timeLabel: "Paid at",
-        time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit",
-        }),
-      };
+
     case "preparing":
       return {
-        label: "PREPARING",
-        desc:  "Your food is being prepared right now",
-        percent: 75,
-        color:  "#f59e0b",
-        bg:     "#fff8e1",
+        label:     "PREPARING",
+        desc:      "Your food is being prepared right now",
+        percent:   75,
+        color:     "#f59e0b",
+        bg:        "#fff8e1",
         timeLabel: "Started at",
         time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
           hour: "2-digit", minute: "2-digit",
         }),
       };
+
     case "ready":
       return {
-        label: "READY!",
-        desc:  "Your order is ready — waiter is on the way",
-        percent: 100,
-        color:  "#28a745",
-        bg:     "#e6f4ea",
+        label:     "READY!",
+        desc:      "Your order is ready — waiter is on the way 🎉",
+        percent:   100,
+        color:     "#28a745",
+        bg:        "#e6f4ea",
         timeLabel: "Ready at",
         time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
           hour: "2-digit", minute: "2-digit",
         }),
       };
+
     case "cancelled":
       return {
-        label: "CANCELLED",
-        desc:  "This order was cancelled",
-        percent: 0,
-        color:  "#e53e3e",
-        bg:     "#fce8e8",
+        label:     "CANCELLED",
+        desc:      "This order was cancelled",
+        percent:   0,
+        color:     "#e53e3e",
+        bg:        "#fce8e8",
         timeLabel: "Cancelled at",
         time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
           hour: "2-digit", minute: "2-digit",
         }),
       };
+
     default:
       return {
-        label: "PENDING",
-        desc:  "Your order is being processed",
-        percent: 10,
-        color:  "#888",
-        bg:     "#f5f5f5",
+        label:     "PROCESSING",
+        desc:      "Your order is being processed",
+        percent:   10,
+        color:     "#888",
+        bg:        "#f5f5f5",
         timeLabel: "Placed at",
-        time: "—",
+        time:      "—",
       };
   }
 }
 
 // ─── Status Steps ─────────────────────────────────────────────────────────────
 const STEPS = [
-  { key: "placed",          label: "Placed"    },
-  { key: "payment_pending", label: "Payment"   },
-  { key: "paid",            label: "Confirmed" },
-  { key: "preparing",       label: "Preparing" },
-  { key: "ready",           label: "Ready"     },
+  { key: "pending",   label: "Placed"    },
+  { key: "waiting",   label: "Paid"      },
+  { key: "preparing", label: "Preparing" },
+  { key: "ready",     label: "Ready"     },
 ];
 
 function StatusSteps({ currentStatus }) {
@@ -162,7 +171,11 @@ function StatusSteps({ currentStatus }) {
         return (
           <div key={step.key} className={styles.stepItem}>
             {i > 0 && (
-              <div className={`${styles.stepLine} ${done || active ? styles.stepLineDone : ""}`} />
+              <div
+                className={`${styles.stepLine} ${
+                  done || active ? styles.stepLineDone : ""
+                }`}
+              />
             )}
             <div
               className={`${styles.stepDot} ${
@@ -173,7 +186,11 @@ function StatusSteps({ currentStatus }) {
             >
               {done ? "✓" : i + 1}
             </div>
-            <span className={`${styles.stepLabel} ${active ? styles.stepLabelActive : ""}`}>
+            <span
+              className={`${styles.stepLabel} ${
+                active ? styles.stepLabelActive : ""
+              }`}
+            >
               {step.label}
             </span>
           </div>
@@ -186,6 +203,8 @@ function StatusSteps({ currentStatus }) {
 // ─── Receipt Panel ────────────────────────────────────────────────────────────
 function ReceiptPanel({ order, onClose }) {
   const config = getStatusConfig(order);
+  const isPaid = ["waiting", "preparing", "ready"].includes(order.status);
+
   return (
     <div className={styles.receiptPanel}>
       <div className={styles.receiptHeader}>
@@ -237,13 +256,11 @@ function ReceiptPanel({ order, onClose }) {
         <span
           className={styles.paymentBadge}
           style={{
-            background: order.status === "paid" || order.status === "ready"
-              ? "#e6f4ea" : "#f0f0f0",
-            color: order.status === "paid" || order.status === "ready"
-              ? "#28a745" : "#888",
+            background: isPaid ? "#e6f4ea" : "#fff8e1",
+            color:      isPaid ? "#28a745" : "#f59e0b",
           }}
         >
-          {order.status === "paid" || order.status === "ready" ? "PAID" : "UNPAID"}
+          {isPaid ? "PAID" : "PENDING PAYMENT"}
         </span>
       </div>
 
@@ -255,8 +272,10 @@ function ReceiptPanel({ order, onClose }) {
 }
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
-function OrderCard({ order, onViewReceipt }) {
-  const config = getStatusConfig(order);
+function OrderCard({ order, onViewReceipt, onCancel, cancelling }) {
+  const config    = getStatusConfig(order);
+  const canCancel = order.status === "pending";
+
   return (
     <div className={styles.orderCard}>
       <div className={styles.orderLeft}>
@@ -308,12 +327,24 @@ function OrderCard({ order, onViewReceipt }) {
         )}
       </div>
 
-      <button
-        className={styles.viewReceiptBtn}
-        onClick={() => onViewReceipt(order)}
-      >
-        View Receipt →
-      </button>
+      <div className={styles.orderActions}>
+        <button
+          className={styles.viewReceiptBtn}
+          onClick={() => onViewReceipt(order)}
+        >
+          View Receipt →
+        </button>
+
+        {canCancel && (
+          <button
+            className={styles.cancelOrderBtn}
+            onClick={() => onCancel(order.id)}
+            disabled={cancelling === order.id}
+          >
+            {cancelling === order.id ? "Cancelling..." : "Cancel Order"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -321,10 +352,11 @@ function OrderCard({ order, onViewReceipt }) {
 // ─── Order Tracker ────────────────────────────────────────────────────────────
 function OrderTracker({ orderId }) {
   const [activeOrders,    setActiveOrders]    = useState([]);
-  const [completedOrders, setCompletedOrders] = useState([]);
+  const [cancelledOrders, setCancelledOrders] = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [selectedOrder,   setSelectedOrder]   = useState(null);
   const [activeTab,       setActiveTab]       = useState("active");
+  const [cancelling,      setCancelling]      = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -337,50 +369,57 @@ function OrderTracker({ orderId }) {
     try {
       const token    = localStorage.getItem("token");
       const guestKey = localStorage.getItem("guest_key");
-
-      let allOrders = [];
+      let allOrders  = [];
 
       if (token) {
         const res = await getOrders();
         allOrders = res.data;
       } else if (guestKey) {
-        // Guest: fetch tracked order IDs from localStorage
-        const guestOrderIds = JSON.parse(
-          localStorage.getItem("guest_orders") || "[]"
-        );
-        const lastId = localStorage.getItem("last_order_id");
-        const ids = [...new Set([lastId, ...guestOrderIds].filter(Boolean))];
+        const ids = [
+          ...new Set(
+            [
+              localStorage.getItem("last_order_id"),
+              ...JSON.parse(localStorage.getItem("guest_orders") || "[]"),
+            ].filter(Boolean)
+          ),
+        ];
         const results = await Promise.all(
-          ids.map(id =>
-            getOrder(id).then(r => r.data).catch(() => null)
-          )
+          ids.map(id => getOrder(id).then(r => r.data).catch(() => null))
         );
         allOrders = results.filter(Boolean);
       }
 
-      // Pay-first flow statuses:
-      // Active  = placed, payment_pending, paid, preparing, ready
-      // Done    = cancelled (show last 10)
-      // Note: "ready" stays in active so user sees it — they can move to history manually
-      const active = allOrders.filter(o =>
-        ["placed", "payment_pending", "paid", "preparing", "ready"].includes(o.status)
+      // Active = pending (waiting for payment), waiting, preparing, ready
+      setActiveOrders(
+        allOrders.filter(o =>
+          ["pending", "waiting", "preparing", "ready"].includes(o.status)
+        )
       );
-      const done = allOrders.filter(o =>
-        ["cancelled"].includes(o.status)
+      setCancelledOrders(
+        allOrders.filter(o => o.status === "cancelled")
       );
-
-      setActiveOrders(active);
-      setCompletedOrders(done);
-
-      // If a specific orderId was passed in URL, select it
-      if (orderId && active.length > 0) {
-        const target = active.find(o => String(o.id) === String(orderId));
-        if (target && !selectedOrder) setSelectedOrder(target);
-      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCancel(orderId) {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+
+    setCancelling(orderId);
+    try {
+      await cancelOrder(orderId);
+      await fetchOrders();
+    } catch (err) {
+      const msg =
+        err.response?.data?.detail ||
+        err.response?.data?.non_field_errors?.[0] ||
+        "Could not cancel. The order may already be in progress.";
+      alert(msg);
+    } finally {
+      setCancelling(null);
     }
   }
 
@@ -389,7 +428,7 @@ function OrderTracker({ orderId }) {
   );
 
   const displayOrders =
-    activeTab === "active" ? activeOrders : completedOrders;
+    activeTab === "active" ? activeOrders : cancelledOrders;
 
   return (
     <div className={styles.trackerPage}>
@@ -404,17 +443,17 @@ function OrderTracker({ orderId }) {
               {activeOrders.length !== 1 ? "s" : ""}
             </p>
             <p className={styles.notifSub}>
-              This page auto-refreshes every 8 seconds
+              Auto-refreshes every 8 seconds
             </p>
           </div>
         </div>
       )}
 
-      {/* STATUS STEPS for first active order */}
+      {/* STATUS STEPS */}
       {activeOrders[0] && (
         <div className={styles.stepsCard}>
           <p className={styles.stepsLabel}>
-            Order #{activeOrders[0].receipt_number?.slice(-6)} — Current Step
+            Order #{activeOrders[0].receipt_number?.slice(-6)} — Progress
           </p>
           <StatusSteps currentStatus={activeOrders[0].status} />
         </div>
@@ -432,12 +471,12 @@ function OrderTracker({ orderId }) {
           )}
         </button>
         <button
-          className={activeTab === "done" ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab("done")}
+          className={activeTab === "cancelled" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("cancelled")}
         >
           Cancelled
-          {completedOrders.length > 0 && (
-            <span className={styles.tabCount}>{completedOrders.length}</span>
+          {cancelledOrders.length > 0 && (
+            <span className={styles.tabCount}>{cancelledOrders.length}</span>
           )}
         </button>
       </div>
@@ -446,7 +485,7 @@ function OrderTracker({ orderId }) {
         <div className={styles.noOrders}>
           <p>
             {activeTab === "active"
-              ? "🎉 No active orders. Ready to order again?"
+              ? "🎉 No active orders."
               : "No cancelled orders."}
           </p>
           {activeTab === "active" && (
@@ -470,6 +509,8 @@ function OrderTracker({ orderId }) {
                 key={order.id}
                 order={order}
                 onViewReceipt={setSelectedOrder}
+                onCancel={handleCancel}
+                cancelling={cancelling}
               />
             ))}
           </div>
@@ -500,15 +541,16 @@ export default function OrderProcess() {
 
   const isConfirming = cart.length > 0 && !id;
 
-  // Guard: if confirming but no table, send back to cart
   useEffect(() => {
-    if (isConfirming && !table) {
-      navigate("/cart");
-    }
+    if (isConfirming && !table) navigate("/cart");
   }, [isConfirming, table]);
 
   async function handleConfirmOrder() {
     if (!table) { setShowTableModal(true); return; }
+    if (!table.session_id) {
+      setError("No active table session. Please scan your table QR again.");
+      return;
+    }
     if (cart.length === 0) return;
 
     setLoading(true);
@@ -528,7 +570,6 @@ export default function OrderProcess() {
       const newOrder = orderRes.data;
       await submitOrder(newOrder.id);
 
-      // Track guest orders
       if (!user) {
         const stored = JSON.parse(
           localStorage.getItem("guest_orders") || "[]"
@@ -544,10 +585,12 @@ export default function OrderProcess() {
       navigate(`/order/process/${newOrder.id}`);
     } catch (err) {
       console.error(err.response?.data);
+      const data   = err.response?.data || {};
       const detail =
-        err.response?.data?.detail ||
-        err.response?.data?.non_field_errors?.[0] ||
-        Object.values(err.response?.data || {})[0]?.[0] ||
+        data.detail ||
+        data.non_field_errors?.[0] ||
+        data.table_session?.[0] ||
+        Object.values(data)[0]?.[0] ||
         "Failed to place order. Please try again.";
       setError(detail);
     } finally {
@@ -555,17 +598,14 @@ export default function OrderProcess() {
     }
   }
 
-  // ── Tracker view ──
   if (!isConfirming) return <OrderTracker orderId={id} />;
 
-  // ── Confirm view ──
   return (
     <div className={styles.confirmPage}>
       <div className={styles.confirmCard}>
 
         <h2 className={styles.confirmTitle}>Review & Confirm</h2>
 
-        {/* Table */}
         {table ? (
           <div className={styles.confirmTableBadge}>
             🪑 Table <strong>{table.identifier}</strong>
@@ -582,20 +622,18 @@ export default function OrderProcess() {
           </div>
         )}
 
-        {/* User */}
         <p className={styles.confirmUser}>
           {user
-            ? <>👤 Ordering as <strong>{user.username}</strong></>
+            ? <>👤 <strong>{user.username}</strong></>
             : <span style={{ color: "#888" }}>👤 Guest order</span>
           }
         </p>
 
-        {/* Pay-first notice */}
         <div className={styles.payNotice}>
-          💳 You will need to pay at the cashier before the kitchen starts preparing.
+          💳 After placing your order, please pay at the cashier.
+          Your food will be prepared once payment is confirmed.
         </div>
 
-        {/* Items */}
         <div className={styles.confirmSummary}>
           <h3 className={styles.confirmSummaryTitle}>Order Summary</h3>
           {cart.map(item => (

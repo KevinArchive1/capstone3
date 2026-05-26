@@ -3,9 +3,9 @@ import { getCashierOrders } from "../../../services/cashierApi";
 import styles from "./CashierOrderHistory.module.css";
 
 export default function CashierOrderHistory() {
-  const [orders, setOrders] = useState([]);
+  const [orders,  setOrders]  = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search,  setSearch]  = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -14,8 +14,11 @@ export default function CashierOrderHistory() {
   async function fetchOrders() {
     try {
       const res = await getCashierOrders();
+      // History = orders that are fully done (ready) or cancelled
+      // "ready" is the terminal active status in the new flow
+      // cashier_status="paid" means payment was confirmed
       const completed = res.data.filter(o =>
-        ["paid", "cancelled"].includes(o.status)
+        ["ready", "cancelled"].includes(o.status)
       );
       setOrders(completed);
     } catch (err) {
@@ -30,15 +33,29 @@ export default function CashierOrderHistory() {
     order.notes?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalRevenue = orders
-    .filter(o => o.status === "paid")
-    .reduce((sum, o) => sum + Number(o.total_amount), 0);
+  // Revenue = orders where cashier confirmed payment (cashier_status="paid")
+  const paidOrders    = orders.filter(o => o.cashier_status === "paid");
+  const cancelledOrders = orders.filter(o => o.status === "cancelled");
+  const totalRevenue  = paidOrders.reduce(
+    (sum, o) => sum + Number(o.total_amount), 0
+  );
+
+  function getStatusLabel(order) {
+    if (order.status === "cancelled") return "Cancelled";
+    if (order.cashier_status === "paid") return "Paid";
+    if (order.status === "ready") return "Ready";
+    return order.status;
+  }
+
+  function getStatusClass(order) {
+    if (order.status === "cancelled") return styles.cancelled;
+    if (order.cashier_status === "paid") return styles.paid;
+    if (order.status === "ready") return styles.ready;
+    return "";
+  }
 
   const today = new Date().toLocaleDateString("en-PH", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   if (loading) return <div className={styles.loading}>Loading history...</div>;
@@ -50,7 +67,7 @@ export default function CashierOrderHistory() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Order History</h1>
-          <p className={styles.sub}>All completed and cancelled transactions</p>
+          <p className={styles.sub}>Completed and cancelled transactions</p>
         </div>
         <span className={styles.date}>{today}</span>
       </div>
@@ -64,13 +81,13 @@ export default function CashierOrderHistory() {
         <div className={styles.summaryCard}>
           <p className={styles.summaryLabel}>Paid Orders</p>
           <h2 className={styles.summaryValue} style={{ color: "#28a745" }}>
-            {orders.filter(o => o.status === "paid").length}
+            {paidOrders.length}
           </h2>
         </div>
         <div className={styles.summaryCard}>
           <p className={styles.summaryLabel}>Cancelled Orders</p>
           <h2 className={styles.summaryValue} style={{ color: "#e53e3e" }}>
-            {orders.filter(o => o.status === "cancelled").length}
+            {cancelledOrders.length}
           </h2>
         </div>
         <div className={styles.summaryCard}>
@@ -103,6 +120,7 @@ export default function CashierOrderHistory() {
                 <th>Table</th>
                 <th>Items</th>
                 <th>Total</th>
+                <th>Payment</th>
                 <th>Status</th>
                 <th>Time</th>
               </tr>
@@ -118,7 +136,7 @@ export default function CashierOrderHistory() {
                     <div className={styles.itemsCell}>
                       {order.items?.slice(0, 2).map(item => (
                         <span key={item.id} className={styles.itemChip}>
-                          {item.item_name} x{item.quantity}
+                          {item.item_name} ×{item.quantity}
                         </span>
                       ))}
                       {order.items?.length > 2 && (
@@ -132,20 +150,33 @@ export default function CashierOrderHistory() {
                     ₱{Number(order.total_amount).toFixed(2)}
                   </td>
                   <td>
-                    <span className={`${styles.statusBadge} ${styles[order.status]}`}>
-                      {order.status}
+                    <span
+                      className={styles.statusBadge}
+                      style={{
+                        background: order.cashier_status === "paid"
+                          ? "#e6f4ea" : "#fff8e1",
+                        color: order.cashier_status === "paid"
+                          ? "#28a745" : "#f59e0b",
+                      }}
+                    >
+                      {order.cashier_status === "paid"
+                        ? "Paid"
+                        : "Awaiting Payment"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`${styles.statusBadge} ${getStatusClass(order)}`}>
+                      {getStatusLabel(order)}
                     </span>
                   </td>
                   <td className={styles.timeCol}>
                     {new Date(order.created_at).toLocaleTimeString("en-PH", {
-                      hour: "2-digit",
-                      minute: "2-digit",
+                      hour: "2-digit", minute: "2-digit",
                     })}
                     <br />
                     <span className={styles.dateSmall}>
                       {new Date(order.created_at).toLocaleDateString("en-PH", {
-                        month: "short",
-                        day: "numeric",
+                        month: "short", day: "numeric",
                       })}
                     </span>
                   </td>

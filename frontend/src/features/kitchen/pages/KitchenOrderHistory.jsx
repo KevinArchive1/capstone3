@@ -3,9 +3,9 @@ import { getKitchenOrders } from "../../../services/kitchenApi";
 import styles from "./KitchenOrderHistory.module.css";
 
 export default function KitchenOrderHistory() {
-  const [orders, setOrders] = useState([]);
+  const [orders,  setOrders]  = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search,  setSearch]  = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -14,10 +14,12 @@ export default function KitchenOrderHistory() {
   async function fetchOrders() {
     try {
       const res = await getKitchenOrders();
-      const completed = res.data.filter(o =>
-        ["paid", "payment_pending", "cancelled"].includes(o.status)
+      // History = orders where kitchen is done (kitchen_status=ready)
+      // or fully completed/cancelled
+      const history = res.data.filter(o =>
+        o.kitchen_status === "ready" || o.status === "cancelled"
       );
-      setOrders(completed);
+      setOrders(history);
     } catch (err) {
       console.error(err);
     } finally {
@@ -30,11 +32,28 @@ export default function KitchenOrderHistory() {
     order.notes?.toLowerCase().includes(search.toLowerCase())
   );
 
+  function getStatusStyle(status) {
+    switch (status) {
+      case "ready":     return styles.ready;
+      case "preparing": return styles.preparing;
+      case "waiting":   return styles.waiting;
+      case "cancelled": return styles.cancelled;
+      default:          return "";
+    }
+  }
+
+  function getStatusLabel(status) {
+    switch (status) {
+      case "ready":     return "Ready";
+      case "preparing": return "Preparing";
+      case "waiting":   return "In Queue";
+      case "cancelled": return "Cancelled";
+      default:          return status;
+    }
+  }
+
   const today = new Date().toLocaleDateString("en-PH", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   if (loading) return <div className={styles.loading}>Loading history...</div>;
@@ -42,16 +61,16 @@ export default function KitchenOrderHistory() {
   return (
     <div className={styles.page}>
 
-      {/* HEADER */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Order History</h1>
-          <p className={styles.sub}>Completed and cancelled orders</p>
+          <p className={styles.sub}>
+            Completed kitchen items and cancelled orders
+          </p>
         </div>
         <span className={styles.date}>{today}</span>
       </div>
 
-      {/* SEARCH */}
       <div className={styles.searchBar}>
         <input
           className={styles.searchInput}
@@ -61,9 +80,8 @@ export default function KitchenOrderHistory() {
         />
       </div>
 
-      {/* TABLE */}
       {filtered.length === 0 ? (
-        <div className={styles.empty}>No completed orders found.</div>
+        <div className={styles.empty}>No history found.</div>
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
@@ -71,7 +89,7 @@ export default function KitchenOrderHistory() {
               <tr>
                 <th>Receipt #</th>
                 <th>Table</th>
-                <th>Items</th>
+                <th>Kitchen Items</th>
                 <th>Total</th>
                 <th>Status</th>
                 <th>Time</th>
@@ -86,14 +104,17 @@ export default function KitchenOrderHistory() {
                   <td>{order.notes?.replace("Table: ", "") || "—"}</td>
                   <td>
                     <div className={styles.itemsCell}>
-                      {order.items?.slice(0, 2).map(item => (
-                        <span key={item.id} className={styles.itemChip}>
-                          {item.item_name} x{item.quantity}
-                        </span>
-                      ))}
-                      {order.items?.length > 2 && (
+                      {order.items
+                        ?.filter(i => i.station === "kitchen")
+                        .slice(0, 2)
+                        .map(item => (
+                          <span key={item.id} className={styles.itemChip}>
+                            {item.item_name} ×{item.quantity}
+                          </span>
+                        ))}
+                      {order.items?.filter(i => i.station === "kitchen").length > 2 && (
                         <span className={styles.itemChip}>
-                          +{order.items.length - 2} more
+                          +{order.items.filter(i => i.station === "kitchen").length - 2} more
                         </span>
                       )}
                     </div>
@@ -102,20 +123,18 @@ export default function KitchenOrderHistory() {
                     ₱{Number(order.total_amount).toFixed(2)}
                   </td>
                   <td>
-                    <span className={`${styles.statusBadge} ${styles[order.status]}`}>
-                      {order.status.replace("_", " ")}
+                    <span className={`${styles.statusBadge} ${getStatusStyle(order.status)}`}>
+                      {getStatusLabel(order.status)}
                     </span>
                   </td>
                   <td className={styles.timeCol}>
                     {new Date(order.created_at).toLocaleTimeString("en-PH", {
-                      hour: "2-digit",
-                      minute: "2-digit",
+                      hour: "2-digit", minute: "2-digit",
                     })}
                     <br />
                     <span className={styles.dateSmall}>
                       {new Date(order.created_at).toLocaleDateString("en-PH", {
-                        month: "short",
-                        day: "numeric",
+                        month: "short", day: "numeric",
                       })}
                     </span>
                   </td>

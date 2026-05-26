@@ -14,6 +14,9 @@ export const moderateScanRequest = (id, data) =>
   API.post(`/table-scan-requests/${id}/moderate/`, data);
 
 // TABLE SESSIONS
+export const getTableSessions = () =>
+  API.get("/table-sessions/");
+
 export const closeTableSession = (id) =>
   API.post(`/table-sessions/${id}/close/`);
 
@@ -28,8 +31,12 @@ export const markTableVacant = (id) =>
   API.post(`/tables/${id}/mark_vacant/`);
 
 // ORDERS
-export const getReadyOrders = () =>
-  API.get("/orders/?status=ready");
-
 export const getOrders = () =>
   API.get("/orders/");
+
+// STAFF PAGE REQUESTS
+export const getPageRequests = () =>
+  API.get("/staff-pages/");
+
+export const finishPageRequest = (id) =>
+  API.post(`/staff-pages/${id}/finish/`, { status: "finished" });

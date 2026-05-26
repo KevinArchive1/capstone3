@@ -155,21 +155,22 @@
   padding: 20px 0;
 }
 
-/* STATUS BADGES */
+/* STATUS BADGES — updated for new backend status names */
 .badge {
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 20px;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
-.placed { background: #fff4ea; color: #ff7a00; }
+.pending   { background: #eef2ff; color: #4a6cf7; }
+.waiting   { background: #e6f4ea; color: #28a745; }
 .preparing { background: #fff8e1; color: #f59e0b; }
-.ready { background: #e6f4ea; color: #28a745; }
-.paid { background: #e8f5e9; color: #1b5e20; }
+.ready     { background: #e6f4ea; color: #28a745; }
 .cancelled { background: #fce8e8; color: #e53e3e; }
-.draft { background: #f0f0f0; color: #888; }
+.draft     { background: #f0f0f0; color: #888; }
 
 /* TABLE GRID */
 .tableGrid {
@@ -201,9 +202,11 @@
   text-transform: capitalize;
 }
 
-.vacant { background: #e6f4ea; color: #28a745; }
+/* Table status chip colours */
+.vacant   { background: #e6f4ea; color: #28a745; }
 .occupied { background: #fff4ea; color: #ff7a00; }
-.merged { background: #e8f0fe; color: #4a6cf7; }
+.merged   { background: #e8f0fe; color: #4a6cf7; }
+.blocked  { background: #fce8e8; color: #e53e3e; }
 
 /* SERVE BTN */
 .serveBtn {

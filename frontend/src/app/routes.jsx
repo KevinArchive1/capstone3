@@ -8,8 +8,6 @@ import Landing from "../pages/Landing";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 
-import KitchenPage from "../features/kitchen/pages/KitchenPage";
-
 import AdminLayout from "../features/admin/components/layout/AdminLayout";
 import AdminDashboard from "../features/admin/pages/AdminDashboard";
 import AdminProducts from "../features/admin/pages/AdminProducts";
@@ -41,7 +39,6 @@ import Menu from "../features/user/pages/Menu";
 
 import Cart from "../features/user/pages/Cart";
 import OrderProcess from "../features/user/pages/OrderProcess";
-import Receipt from "../features/user/components/cart/Receipt";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import OrderHistory from "../features/user/pages/OrderHistory"; 
@@ -94,16 +91,8 @@ export default function AppRoutes() {
 
           <Route path="/order/process" element={<OrderProcess />} />
           <Route path="/order/process/:id" element={<OrderProcess />} />
-          <Route path="/order/:id/receipt" element={<Receipt />} />
 
-          <Route
-            path="/account/history"
-            element={
-              <ProtectedRoute>
-                <OrderHistory />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/account/history" element={<OrderHistory />} />
         </Route>
 
         {/* 👨‍💼 ADMIN (OUTSIDE!) */}

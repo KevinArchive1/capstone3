@@ -5,13 +5,12 @@ import { getScanRequests, getTables, getOrders } from "../../../services/staffAp
 import styles from "./StaffDashboard.module.css";
 
 export default function StaffDashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
   const [scanRequests, setScanRequests] = useState([]);
-  const [tables, setTables] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tables,       setTables]       = useState([]);
+  const [orders,       setOrders]       = useState([]);
+  const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
     fetchAll();
@@ -38,15 +37,38 @@ export default function StaffDashboard() {
 
   const pendingScans = scanRequests.filter(r => r.status === "pending");
   const activeTables = tables.filter(t => t.status === "occupied");
-  const inProgressOrders = orders.filter(o => ["placed", "preparing"].includes(o.status));
+
+  // New status names: "waiting" = paid & in queue, "preparing" = kitchen working
+  const inProgressOrders = orders.filter(o =>
+    ["waiting", "preparing"].includes(o.status)
+  );
   const readyOrders = orders.filter(o => o.status === "ready");
 
   const today = new Date().toLocaleDateString("en-PH", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
+
+  function getStatusLabel(status) {
+    switch (status) {
+      case "pending":   return "Awaiting Payment";
+      case "waiting":   return "In Queue";
+      case "preparing": return "Preparing";
+      case "ready":     return "Ready";
+      case "cancelled": return "Cancelled";
+      default:          return status;
+    }
+  }
+
+  function getStatusStyle(status) {
+    switch (status) {
+      case "pending":   return styles.pending;
+      case "waiting":   return styles.waiting;
+      case "preparing": return styles.preparing;
+      case "ready":     return styles.ready;
+      case "cancelled": return styles.cancelled;
+      default:          return "";
+    }
+  }
 
   if (loading) return (
     <div className={styles.loading}>Loading dashboard...</div>
@@ -58,7 +80,9 @@ export default function StaffDashboard() {
       {/* HEADER */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.greeting}>Good morning, {user?.first_name || user?.username}!</h1>
+          <h1 className={styles.greeting}>
+            Good morning, {user?.first_name || user?.username}!
+          </h1>
           <p className={styles.sub}>Here's what's happening in your area.</p>
         </div>
         <span className={styles.date}>{today}</span>
@@ -96,7 +120,7 @@ export default function StaffDashboard() {
           <div>
             <p className={styles.statLabel}>Orders in Progress</p>
             <h2 className={styles.statValue}>{inProgressOrders.length}</h2>
-            <p className={styles.statSub}>Being prepared</p>
+            <p className={styles.statSub}>Paid & being prepared</p>
           </div>
         </div>
 
@@ -123,11 +147,15 @@ export default function StaffDashboard() {
             {orders.slice(0, 6).map(order => (
               <div key={order.id} className={styles.lineItem}>
                 <div className={styles.lineLeft}>
-                  <span className={styles.lineOrder}>#{order.receipt_number?.slice(-6)}</span>
-                  <span className={styles.lineNote}>{order.notes || "—"}</span>
+                  <span className={styles.lineOrder}>
+                    #{order.receipt_number?.slice(-6)}
+                  </span>
+                  <span className={styles.lineNote}>
+                    {order.notes?.replace("Table: ", "Table ") || "—"}
+                  </span>
                 </div>
-                <span className={`${styles.badge} ${styles[order.status]}`}>
-                  {order.status}
+                <span className={`${styles.badge} ${getStatusStyle(order.status)}`}>
+                  {getStatusLabel(order.status)}
                 </span>
               </div>
             ))}
@@ -151,6 +179,9 @@ export default function StaffDashboard() {
                 <span className={styles.tableStatus}>{table.status}</span>
               </div>
             ))}
+            {tables.length === 0 && (
+              <p className={styles.empty}>No tables found.</p>
+            )}
           </div>
         </div>
 
@@ -161,8 +192,12 @@ export default function StaffDashboard() {
             {readyOrders.slice(0, 5).map(order => (
               <div key={order.id} className={styles.lineItem}>
                 <div className={styles.lineLeft}>
-                  <span className={styles.lineOrder}>#{order.receipt_number?.slice(-6)}</span>
-                  <span className={styles.lineNote}>{order.notes || "—"}</span>
+                  <span className={styles.lineOrder}>
+                    #{order.receipt_number?.slice(-6)}
+                  </span>
+                  <span className={styles.lineNote}>
+                    {order.notes?.replace("Table: ", "Table ") || "—"}
+                  </span>
                 </div>
                 <button
                   className={styles.serveBtn}

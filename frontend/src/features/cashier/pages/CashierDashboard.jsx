@@ -5,9 +5,9 @@ import { getCashierOrders } from "../../../services/cashierApi";
 import styles from "./CashierDashboard.module.css";
 
 export default function CashierDashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
+  const { user }  = useAuth();
+  const navigate  = useNavigate();
+  const [orders,  setOrders]  = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,12 +27,17 @@ export default function CashierDashboard() {
     }
   }
 
-  // Full pipeline counts
-  const incomingOrders     = orders.filter(o => ["placed", "preparing"].includes(o.status));
-  const readyOrders        = orders.filter(o => o.status === "ready");
-  const paymentPendingOrders = orders.filter(o => o.status === "payment_pending");
-  const paidOrders         = orders.filter(o => o.status === "paid");
-  const totalRevenue       = paidOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+  // New flow:
+  // pending   = placed, awaiting cashier payment confirmation
+  // waiting   = cashier confirmed payment, in kitchen queue
+  // preparing = kitchen working
+  // ready     = done, waiter serves
+  const newOrders      = orders.filter(o => o.status === "pending");
+  const inKitchen      = orders.filter(o => ["waiting", "preparing"].includes(o.status));
+  const readyOrders    = orders.filter(o => o.status === "ready");
+  const totalRevenue   = orders
+    .filter(o => o.cashier_status === "paid")
+    .reduce((sum, o) => sum + Number(o.total_amount), 0);
 
   const today = new Date().toLocaleDateString("en-PH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -40,23 +45,23 @@ export default function CashierDashboard() {
 
   function getStatusLabel(status) {
     switch (status) {
-      case "placed":          return "Received";
-      case "preparing":       return "Preparing";
-      case "ready":           return "Ready";
-      case "payment_pending": return "Payment Pending";
-      case "paid":            return "Paid";
-      default:                return status;
+      case "pending":   return "Awaiting Payment";
+      case "waiting":   return "Paid — In Queue";
+      case "preparing": return "Preparing";
+      case "ready":     return "Ready";
+      case "cancelled": return "Cancelled";
+      default:          return status;
     }
   }
 
-  function getStatusStyle(status) {
+  function getStatusClass(status) {
     switch (status) {
-      case "placed":          return styles.placed;
-      case "preparing":       return styles.preparing;
-      case "ready":           return styles.ready;
-      case "payment_pending": return styles.paymentpending;
-      case "paid":            return styles.paid;
-      default:                return "";
+      case "pending":   return styles.pending;
+      case "waiting":   return styles.waiting;
+      case "preparing": return styles.preparing;
+      case "ready":     return styles.ready;
+      case "cancelled": return styles.cancelled;
+      default:          return "";
     }
   }
 
@@ -65,7 +70,6 @@ export default function CashierDashboard() {
   return (
     <div className={styles.page}>
 
-      {/* HEADER */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.greeting}>
@@ -76,8 +80,21 @@ export default function CashierDashboard() {
         <span className={styles.date}>{today}</span>
       </div>
 
-      {/* STAT CARDS — full pipeline */}
+      {/* STAT CARDS */}
       <div className={styles.stats}>
+
+        <div
+          className={styles.statCard}
+          onClick={() => navigate("/cashier/orders")}
+        >
+          <div className={styles.statIcon}>🧾</div>
+          <div>
+            <p className={styles.statLabel}>Awaiting Payment</p>
+            <h2 className={styles.statValue}>{newOrders.length}</h2>
+            <p className={styles.statSub}>New orders to collect</p>
+          </div>
+          {newOrders.length > 0 && <span className={styles.dotBlue} />}
+        </div>
 
         <div
           className={styles.statCard}
@@ -85,11 +102,10 @@ export default function CashierDashboard() {
         >
           <div className={styles.statIcon}>🍳</div>
           <div>
-            <p className={styles.statLabel}>Incoming</p>
-            <h2 className={styles.statValue}>{incomingOrders.length}</h2>
-            <p className={styles.statSub}>Placed & being prepared</p>
+            <p className={styles.statLabel}>In Kitchen</p>
+            <h2 className={styles.statValue}>{inKitchen.length}</h2>
+            <p className={styles.statSub}>Paid & being prepared</p>
           </div>
-          {incomingOrders.length > 0 && <span className={styles.dotOrange} />}
         </div>
 
         <div
@@ -98,37 +114,21 @@ export default function CashierDashboard() {
         >
           <div className={styles.statIcon}>✅</div>
           <div>
-            <p className={styles.statLabel}>Ready to Pay</p>
+            <p className={styles.statLabel}>Ready to Serve</p>
             <h2 className={styles.statValue}>{readyOrders.length}</h2>
-            <p className={styles.statSub}>Waiting for cashier</p>
+            <p className={styles.statSub}>Waiting for waiter</p>
           </div>
           {readyOrders.length > 0 && <span className={styles.dotGreen} />}
         </div>
 
-        <div
-          className={styles.statCard}
-          onClick={() => navigate("/cashier/orders")}
-        >
-          <div className={styles.statIcon}>💳</div>
-          <div>
-            <p className={styles.statLabel}>Payment Pending</p>
-            <h2 className={styles.statValue}>{paymentPendingOrders.length}</h2>
-            <p className={styles.statSub}>Processing payment</p>
-          </div>
-          {paymentPendingOrders.length > 0 && <span className={styles.dotBlue} />}
-        </div>
-
-        <div
-          className={styles.statCard}
-          onClick={() => navigate("/cashier/history")}
-        >
+        <div className={styles.statCard}>
           <div className={styles.statIcon}>💰</div>
           <div>
             <p className={styles.statLabel}>Total Revenue</p>
             <h2 className={styles.statValueSmall}>
               ₱{totalRevenue.toFixed(2)}
             </h2>
-            <p className={styles.statSub}>{paidOrders.length} paid today</p>
+            <p className={styles.statSub}>From confirmed payments</p>
           </div>
         </div>
 
@@ -137,52 +137,81 @@ export default function CashierDashboard() {
       {/* BOTTOM GRID */}
       <div className={styles.grid}>
 
-        {/* PIPELINE OVERVIEW */}
+        {/* AWAITING PAYMENT */}
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>
-            Active Orders Pipeline
-            <span className={styles.badgeOrange}>
-              {incomingOrders.length + readyOrders.length + paymentPendingOrders.length}
-            </span>
+            Awaiting Payment
+            <span className={styles.badgeBlue}>{newOrders.length}</span>
           </h3>
           <div className={styles.orderList}>
-            {[...incomingOrders, ...readyOrders, ...paymentPendingOrders]
-              .slice(0, 6)
-              .map(order => (
-                <div
-                  key={order.id}
-                  className={styles.orderItem}
-                  onClick={() => navigate("/cashier/orders")}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className={styles.orderLeft}>
-                    <p className={styles.orderNumber}>
-                      #{order.receipt_number?.slice(-6)}
-                    </p>
-                    <p className={styles.orderNote}>
-                      {order.notes?.replace("Table: ", "Table ") || "—"}
-                    </p>
-                  </div>
-                  <div className={styles.orderRight}>
-                    <p className={styles.orderTotal}>
-                      ₱{Number(order.total_amount).toFixed(2)}
-                    </p>
-                    <span className={`${styles.statusBadge} ${getStatusStyle(order.status)}`}>
-                      {getStatusLabel(order.status)}
-                    </span>
-                  </div>
+            {newOrders.slice(0, 5).map(order => (
+              <div
+                key={order.id}
+                className={styles.orderItem}
+                onClick={() => navigate("/cashier/orders")}
+                style={{ cursor: "pointer" }}
+              >
+                <div className={styles.orderLeft}>
+                  <p className={styles.orderNumber}>
+                    #{order.receipt_number?.slice(-6)}
+                  </p>
+                  <p className={styles.orderNote}>
+                    {order.notes?.replace("Table: ", "Table ") || "—"}
+                  </p>
                 </div>
-              ))}
-            {incomingOrders.length + readyOrders.length + paymentPendingOrders.length === 0 && (
-              <p className={styles.empty}>No active orders.</p>
+                <div className={styles.orderRight}>
+                  <p className={styles.orderTotal}>
+                    ₱{Number(order.total_amount).toFixed(2)}
+                  </p>
+                  <button className={styles.actionBtn}>
+                    Collect
+                  </button>
+                </div>
+              </div>
+            ))}
+            {newOrders.length === 0 && (
+              <p className={styles.empty}>No orders awaiting payment.</p>
             )}
           </div>
         </div>
 
-        {/* READY TO PAY */}
+        {/* IN KITCHEN */}
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>
-            Ready to Pay
+            In Kitchen
+            <span className={styles.badgeOrange}>{inKitchen.length}</span>
+          </h3>
+          <div className={styles.orderList}>
+            {inKitchen.slice(0, 5).map(order => (
+              <div key={order.id} className={styles.orderItem}>
+                <div className={styles.orderLeft}>
+                  <p className={styles.orderNumber}>
+                    #{order.receipt_number?.slice(-6)}
+                  </p>
+                  <p className={styles.orderNote}>
+                    {order.notes?.replace("Table: ", "Table ") || "—"}
+                  </p>
+                </div>
+                <div className={styles.orderRight}>
+                  <p className={styles.orderTotal}>
+                    ₱{Number(order.total_amount).toFixed(2)}
+                  </p>
+                  <span className={`${styles.statusBadge} ${getStatusClass(order.status)}`}>
+                    {getStatusLabel(order.status)}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {inKitchen.length === 0 && (
+              <p className={styles.empty}>No orders in kitchen.</p>
+            )}
+          </div>
+        </div>
+
+        {/* READY */}
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>
+            Ready to Serve
             <span className={styles.badgeGreen}>{readyOrders.length}</span>
           </h3>
           <div className={styles.orderList}>
@@ -200,48 +229,12 @@ export default function CashierDashboard() {
                   <p className={styles.orderTotal}>
                     ₱{Number(order.total_amount).toFixed(2)}
                   </p>
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => navigate("/cashier/orders")}
-                  >
-                    Process
-                  </button>
+                  <span className={styles.readyBadge}>Ready</span>
                 </div>
               </div>
             ))}
             {readyOrders.length === 0 && (
-              <p className={styles.empty}>No orders ready for payment.</p>
-            )}
-          </div>
-        </div>
-
-        {/* RECENTLY PAID */}
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>
-            Recently Paid
-            <span className={styles.badgeGreen}>{paidOrders.length}</span>
-          </h3>
-          <div className={styles.orderList}>
-            {paidOrders.slice(0, 5).map(order => (
-              <div key={order.id} className={styles.orderItem}>
-                <div className={styles.orderLeft}>
-                  <p className={styles.orderNumber}>
-                    #{order.receipt_number?.slice(-6)}
-                  </p>
-                  <p className={styles.orderNote}>
-                    {order.notes?.replace("Table: ", "Table ") || "—"}
-                  </p>
-                </div>
-                <div className={styles.orderRight}>
-                  <p className={styles.orderTotal}>
-                    ₱{Number(order.total_amount).toFixed(2)}
-                  </p>
-                  <span className={styles.paidBadge}>Paid</span>
-                </div>
-              </div>
-            ))}
-            {paidOrders.length === 0 && (
-              <p className={styles.empty}>No paid orders yet.</p>
+              <p className={styles.empty}>No orders ready yet.</p>
             )}
           </div>
         </div>
