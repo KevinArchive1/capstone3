@@ -56,6 +56,27 @@ export default function CashierOrders() {
     }
   }
 
+  async function handleMarkServed(order) {
+    setProcessing(order.id);
+    setErrorMsg("");
+    try {
+      await confirmPaymentAndSendToKitchen(order.id); // reuses cashier_update with paid
+      await fetchOrders();
+      setSelectedOrder(null);
+    } catch (err) {
+      console.error(err);
+      const data = err.response?.data || {};
+      setErrorMsg(
+        data.detail ||
+        data.non_field_errors?.[0] ||
+        data.status?.[0] ||
+        "Failed to close order."
+      );
+    } finally {
+      setProcessing(null);
+    }
+  }
+
   // Backend status flow (after cashier marks paid):
   // placed/pending  = order placed, waiting for cashier to confirm payment
   // paid            = cashier confirmed payment, kitchen sees it
@@ -71,7 +92,7 @@ export default function CashierOrders() {
   );
   const preparingOrders = orders.filter(o => o.status === "preparing");
   const readyOrders = orders.filter(o => o.status === "ready");
-  const doneOrders  = orders.filter(o => o.status === "cancelled");
+  const doneOrders = orders.filter(o => o.status === "cancelled" || (o.status === "paid" && o.cashier_status === "paid"));
 
   const tabConfig = [
     {
@@ -360,8 +381,19 @@ export default function CashierOrders() {
                 )}
 
                 {selectedOrder.status === "ready" && (
-                  <div className={styles.readyNote}>
-                    🍽️ Order is ready — notify the waiter to serve.
+                  <div className={styles.actionBlock}>
+                    <p className={styles.actionHint}>
+                      Confirm the order has been delivered to the table, then close it out.
+                    </p>
+                    <button
+                      className={styles.confirmPaymentBtn}
+                      onClick={() => handleMarkServed(selectedOrder)}
+                      disabled={processing === selectedOrder.id}
+                    >
+                      {processing === selectedOrder.id
+                        ? "Processing..."
+                        : "✅ Mark as Served & Close Order"}
+                    </button>
                   </div>
                 )}
 

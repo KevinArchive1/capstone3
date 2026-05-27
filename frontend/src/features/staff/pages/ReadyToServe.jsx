@@ -3,10 +3,8 @@ import { getOrders } from "../../../services/staffApi";
 import styles from "./ReadyToServe.module.css";
 
 export default function ReadyToServe() {
-  const [orders,    setOrders]    = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [serving,   setServing]   = useState(null);
-  const [servedIds, setServedIds] = useState(new Set());
+  const [orders,  setOrders]  = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchOrders();
@@ -25,19 +23,6 @@ export default function ReadyToServe() {
       setLoading(false);
     }
   }
-
-  // Mark an order as served locally — waiter confirms they delivered it
-  // The order stays in "ready" status in the backend (cashier handles final close)
-  // but we hide it from this view so waiter doesn't double-serve
-  function handleMarkServed(orderId) {
-    setServing(orderId);
-    setTimeout(() => {
-      setServedIds(prev => new Set([...prev, orderId]));
-      setServing(null);
-    }, 600);
-  }
-
-  const displayOrders = orders.filter(o => !servedIds.has(o.id));
 
   const today = new Date().toLocaleDateString("en-PH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -61,26 +46,28 @@ export default function ReadyToServe() {
         <span className={styles.date}>{today}</span>
       </div>
 
-      {/* SERVED COUNT */}
-      {servedIds.size > 0 && (
-        <div className={styles.servedBanner}>
-          ✅ {servedIds.size} order{servedIds.size !== 1 ? "s" : ""} marked as served this session
-        </div>
-      )}
+      {/* INFO BANNER */}
+      <div style={{
+        background: "#eef2ff",
+        border: "1px solid #c7d2fe",
+        color: "#4a6cf7",
+        padding: "12px 18px",
+        borderRadius: "12px",
+        marginBottom: "20px",
+        fontSize: "13px",
+        fontWeight: "500",
+      }}>
+        💡 Deliver the order to the table, then let the cashier close it out.
+      </div>
 
       {/* ORDERS */}
-      {displayOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <div className={styles.empty}>
           <p>🎉 No orders waiting to be served.</p>
-          {servedIds.size > 0 && (
-            <p style={{ fontSize: "14px", color: "#aaa", marginTop: "8px" }}>
-              {servedIds.size} order{servedIds.size !== 1 ? "s" : ""} delivered this session.
-            </p>
-          )}
         </div>
       ) : (
         <div className={styles.list}>
-          {displayOrders.map(order => (
+          {orders.map(order => (
             <div key={order.id} className={styles.card}>
 
               {/* LEFT */}
@@ -123,13 +110,14 @@ export default function ReadyToServe() {
                 <p className={styles.total}>
                   ₱{Number(order.total_amount).toFixed(2)}
                 </p>
-                <button
-                  className={styles.serveBtn}
-                  onClick={() => handleMarkServed(order.id)}
-                  disabled={serving === order.id}
-                >
-                  {serving === order.id ? "✓ Serving..." : "Mark as Served"}
-                </button>
+                <span style={{
+                  fontSize: "12px",
+                  color: "#888",
+                  fontStyle: "italic",
+                  textAlign: "center",
+                }}>
+                  Cashier will close this out
+                </span>
               </div>
 
             </div>

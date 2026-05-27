@@ -14,11 +14,9 @@ export default function CashierOrderHistory() {
   async function fetchOrders() {
     try {
       const res = await getCashierOrders();
-      // History = orders that are fully done (ready) or cancelled
-      // "ready" is the terminal active status in the new flow
-      // cashier_status="paid" means payment was confirmed
+      // Include paid, preparing, ready, and cancelled — all orders that went through cashier confirmation
       const completed = res.data.filter(o =>
-        ["ready", "cancelled"].includes(o.status)
+        ["paid", "preparing", "ready", "cancelled"].includes(o.status)
       );
       setOrders(completed);
     } catch (err) {
@@ -33,24 +31,28 @@ export default function CashierOrderHistory() {
     order.notes?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Revenue = orders where cashier confirmed payment (cashier_status="paid")
-  const paidOrders    = orders.filter(o => o.cashier_status === "paid");
+  // Revenue = all orders that went through payment (paid, preparing, ready)
+  const paidOrders      = orders.filter(o =>
+    ["paid", "preparing", "ready"].includes(o.status)
+  );
   const cancelledOrders = orders.filter(o => o.status === "cancelled");
-  const totalRevenue  = paidOrders.reduce(
+  const totalRevenue    = paidOrders.reduce(
     (sum, o) => sum + Number(o.total_amount), 0
   );
 
   function getStatusLabel(order) {
     if (order.status === "cancelled") return "Cancelled";
-    if (order.cashier_status === "paid") return "Paid";
-    if (order.status === "ready") return "Ready";
+    if (order.status === "ready")     return "Ready";
+    if (order.status === "preparing") return "Preparing";
+    if (order.status === "paid")      return "Paid";
     return order.status;
   }
 
   function getStatusClass(order) {
     if (order.status === "cancelled") return styles.cancelled;
-    if (order.cashier_status === "paid") return styles.paid;
-    if (order.status === "ready") return styles.ready;
+    if (order.status === "ready")     return styles.ready;
+    if (order.status === "preparing") return styles.preparing;
+    if (order.status === "paid")      return styles.paid;
     return "";
   }
 
@@ -153,13 +155,13 @@ export default function CashierOrderHistory() {
                     <span
                       className={styles.statusBadge}
                       style={{
-                        background: order.cashier_status === "paid"
+                        background: ["paid", "preparing", "ready"].includes(order.status)
                           ? "#e6f4ea" : "#fff8e1",
-                        color: order.cashier_status === "paid"
+                        color: ["paid", "preparing", "ready"].includes(order.status)
                           ? "#28a745" : "#f59e0b",
                       }}
                     >
-                      {order.cashier_status === "paid"
+                      {["paid", "preparing", "ready"].includes(order.status)
                         ? "Paid"
                         : "Awaiting Payment"}
                     </span>
