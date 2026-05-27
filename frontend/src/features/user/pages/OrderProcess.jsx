@@ -9,6 +9,7 @@ import {
   submitOrder,
   getOrder,
   getOrders,
+  getGuestOrders,
   cancelOrder,
 } from "../../../services/orderApi";
 import styles from "./OrderProcess.module.css";
@@ -55,10 +56,6 @@ function ProgressCircle({ percent, status }) {
 }
 
 // ─── Status Config ─────────────────────────────────────────────────────────────
-// New backend flow:
-// draft → pending (submitted) → waiting (cashier confirmed payment)
-//       → preparing (kitchen started) → ready (kitchen done)
-// cashier_status: awaiting_payment → paid
 function getStatusConfig(order) {
   switch (order.status) {
     case "draft":
@@ -73,7 +70,7 @@ function getStatusConfig(order) {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-
+    case "placed":
     case "pending":
       return {
         label:     "WAITING FOR PAYMENT",
@@ -86,7 +83,6 @@ function getStatusConfig(order) {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-
     case "waiting":
       return {
         label:     "PAID — IN QUEUE",
@@ -99,7 +95,6 @@ function getStatusConfig(order) {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-
     case "preparing":
       return {
         label:     "PREPARING",
@@ -112,7 +107,6 @@ function getStatusConfig(order) {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-
     case "ready":
       return {
         label:     "READY!",
@@ -125,7 +119,6 @@ function getStatusConfig(order) {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-
     case "cancelled":
       return {
         label:     "CANCELLED",
@@ -138,7 +131,6 @@ function getStatusConfig(order) {
           hour: "2-digit", minute: "2-digit",
         }),
       };
-
     default:
       return {
         label:     "PROCESSING",
@@ -161,7 +153,11 @@ const STEPS = [
 ];
 
 function StatusSteps({ currentStatus }) {
-  const currentIdx = STEPS.findIndex(s => s.key === currentStatus);
+  const statusToIndex = {
+    draft: -1, placed: 0, pending: 0,
+    waiting: 1, preparing: 2, ready: 3,
+  };
+  const currentIdx = statusToIndex[currentStatus] ?? 0;
 
   return (
     <div className={styles.stepsRow}>
@@ -274,7 +270,7 @@ function ReceiptPanel({ order, onClose }) {
 // ─── Order Card ───────────────────────────────────────────────────────────────
 function OrderCard({ order, onViewReceipt, onCancel, cancelling }) {
   const config    = getStatusConfig(order);
-  const canCancel = order.status === "pending";
+  const canCancel = ["draft", "placed", "pending"].includes(order.status);
 
   return (
     <div className={styles.orderCard}>
@@ -351,9 +347,11 @@ function OrderCard({ order, onViewReceipt, onCancel, cancelling }) {
 
 // ─── Order Tracker ────────────────────────────────────────────────────────────
 function OrderTracker({ orderId }) {
+  const { user } = useAuth();
   const [activeOrders,    setActiveOrders]    = useState([]);
   const [cancelledOrders, setCancelledOrders] = useState([]);
   const [loading,         setLoading]         = useState(true);
+  const [error,           setError]           = useState("");
   const [selectedOrder,   setSelectedOrder]   = useState(null);
   const [activeTab,       setActiveTab]       = useState("active");
   const [cancelling,      setCancelling]      = useState(null);
@@ -363,7 +361,7 @@ function OrderTracker({ orderId }) {
     fetchOrders();
     const interval = setInterval(fetchOrders, 8000);
     return () => clearInterval(interval);
-  }, [orderId]);
+  }, [orderId, user]);
 
   async function fetchOrders() {
     try {
@@ -372,10 +370,17 @@ function OrderTracker({ orderId }) {
       let allOrders  = [];
 
       if (token) {
+        // Logged-in user: backend returns all orders for this user
         const res = await getOrders();
         allOrders = res.data;
       } else if (guestKey) {
-        const ids = [
+        // Guest: use guest_key query param — backend filters by guest device
+        const res = await getGuestOrders();
+        allOrders = res.data;
+
+        // Fallback: also fetch individually tracked IDs in case the
+        // backend didn't return all of them (e.g. expired guest session)
+        const trackedIds = [
           ...new Set(
             [
               localStorage.getItem("last_order_id"),
@@ -383,23 +388,60 @@ function OrderTracker({ orderId }) {
             ].filter(Boolean)
           ),
         ];
-        const results = await Promise.all(
-          ids.map(id => getOrder(id).then(r => r.data).catch(() => null))
-        );
-        allOrders = results.filter(Boolean);
+
+        if (trackedIds.length > 0) {
+          const fetchedIds = new Set(allOrders.map(o => String(o.id)));
+          const missing = trackedIds.filter(id => !fetchedIds.has(String(id)));
+
+          if (missing.length > 0) {
+            const results = await Promise.all(
+              missing.map(id => getOrder(id).then(r => r.data).catch(() => null))
+            );
+            allOrders = [...allOrders, ...results.filter(Boolean)];
+          }
+        }
+      } else {
+        setError("No session found. Please log in or continue as guest.");
+        setLoading(false);
+        return;
       }
 
-      // Active = pending (waiting for payment), waiting, preparing, ready
-      setActiveOrders(
-        allOrders.filter(o =>
-          ["pending", "waiting", "preparing", "ready"].includes(o.status)
-        )
+      // If a specific orderId was navigated to, make sure it's highlighted
+      if (orderId) {
+        const exists = allOrders.find(o => String(o.id) === String(orderId));
+        if (!exists) {
+          // Try fetching it directly
+          try {
+            const single = await getOrder(orderId);
+            if (single.data) allOrders = [single.data, ...allOrders];
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      // Deduplicate by id
+      const seen = new Set();
+      allOrders = allOrders.filter(o => {
+        if (seen.has(o.id)) return false;
+        seen.add(o.id);
+        return true;
+      });
+
+      // Sort newest first
+      allOrders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      const active = allOrders.filter(o =>
+        ["draft", "placed", "pending", "waiting", "preparing", "ready"].includes(o.status)
       );
-      setCancelledOrders(
-        allOrders.filter(o => o.status === "cancelled")
-      );
+      const cancelled = allOrders.filter(o => o.status === "cancelled");
+
+      setActiveOrders(active);
+      setCancelledOrders(cancelled);
+      setError("");
     } catch (err) {
-      console.error(err);
+      console.error("fetchOrders error:", err);
+      setError("Could not load orders. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -427,6 +469,17 @@ function OrderTracker({ orderId }) {
     <div className={styles.loading}>Loading your orders...</div>
   );
 
+  if (error) return (
+    <div className={styles.trackerPage}>
+      <div className={styles.noOrders}>
+        <p>{error}</p>
+        <button className={styles.orderAgainBtn} onClick={() => navigate("/menu")}>
+          Go to Menu
+        </button>
+      </div>
+    </div>
+  );
+
   const displayOrders =
     activeTab === "active" ? activeOrders : cancelledOrders;
 
@@ -449,7 +502,7 @@ function OrderTracker({ orderId }) {
         </div>
       )}
 
-      {/* STATUS STEPS */}
+      {/* STATUS STEPS for most recent active order */}
       {activeOrders[0] && (
         <div className={styles.stepsCard}>
           <p className={styles.stepsLabel}>
@@ -570,17 +623,14 @@ export default function OrderProcess() {
       const newOrder = orderRes.data;
       await submitOrder(newOrder.id);
 
-      if (!user) {
-        const stored = JSON.parse(
-          localStorage.getItem("guest_orders") || "[]"
-        );
-        if (!stored.includes(String(newOrder.id))) {
-          stored.push(String(newOrder.id));
-          localStorage.setItem("guest_orders", JSON.stringify(stored));
-        }
+      // Track this order ID for guest recovery
+      const stored = JSON.parse(localStorage.getItem("guest_orders") || "[]");
+      if (!stored.includes(String(newOrder.id))) {
+        stored.push(String(newOrder.id));
+        localStorage.setItem("guest_orders", JSON.stringify(stored));
       }
-
       localStorage.setItem("last_order_id", String(newOrder.id));
+
       clearCart();
       navigate(`/order/process/${newOrder.id}`);
     } catch (err) {

@@ -13,7 +13,6 @@ export const createOrder = (data) => {
   return API.post("/orders/", {
     ...data,
     ...(guestKey ? { guest_key: guestKey } : {}),
-    // table_session is now REQUIRED by the backend — always send it
     ...(table?.session_id ? { table_session: table.session_id } : {}),
   });
 };
@@ -38,8 +37,16 @@ export const cancelOrder = (id, note = "") => {
   return API.post(`/orders/${id}/cancel/`, { note });
 };
 
+// For authenticated users — returns all their orders from the backend
 export const getOrders = () =>
   API.get("/orders/");
+
+// For guests — returns orders filtered by guest_key
+export const getGuestOrders = () => {
+  const guestKey = localStorage.getItem("guest_key");
+  if (!guestKey) return Promise.resolve({ data: [] });
+  return API.get(`/orders/?guest_key=${guestKey}`);
+};
 
 export const getOrder = (id) => {
   const guestKey = localStorage.getItem("guest_key");

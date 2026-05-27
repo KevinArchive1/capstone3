@@ -46,8 +46,22 @@ function Login() {
       else navigate("/");
 
     } catch (err) {
-      console.error(err.response?.data);
-      setError("Invalid email/phone or password.");
+      const data = err.response?.data;
+
+      // Surface the actual backend error message
+      if (data?.non_field_errors?.length) {
+        setError(data.non_field_errors[0]);
+      } else if (data?.detail) {
+        setError(data.detail);
+      } else if (data?.identifier?.length) {
+        setError(`Identifier: ${data.identifier[0]}`);
+      } else if (data?.password?.length) {
+        setError(`Password: ${data.password[0]}`);
+      } else if (typeof data === "string") {
+        setError(data);
+      } else {
+        setError("Login failed. Please check your credentials.");
+      }
     } finally {
       setLoading(false);
     }

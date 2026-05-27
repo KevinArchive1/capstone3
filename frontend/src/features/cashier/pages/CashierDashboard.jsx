@@ -27,17 +27,29 @@ export default function CashierDashboard() {
     }
   }
 
-  // New flow:
-  // pending   = placed, awaiting cashier payment confirmation
-  // waiting   = cashier confirmed payment, in kitchen queue
-  // preparing = kitchen working
-  // ready     = done, waiter serves
-  const newOrders      = orders.filter(o => o.status === "pending");
-  const inKitchen      = orders.filter(o => ["waiting", "preparing"].includes(o.status));
-  const readyOrders    = orders.filter(o => o.status === "ready");
-  const totalRevenue   = orders
-    .filter(o => o.cashier_status === "paid")
-    .reduce((sum, o) => sum + Number(o.total_amount), 0);
+  // Status flow:
+  // placed/pending  = waiting for cashier to confirm payment
+  // paid            = cashier confirmed, kitchen queue
+  // preparing       = kitchen working
+  // ready           = food ready, waiter serves
+  // cancelled       = cancelled
+
+  const newOrders   = orders.filter(o =>
+    ["placed", "pending", "payment_pending"].includes(o.status)
+  );
+  const inKitchen   = orders.filter(o =>
+    ["paid", "preparing"].includes(o.status)
+  );
+  const readyOrders = orders.filter(o => o.status === "ready");
+
+  // Revenue = sum of all orders where cashier confirmed payment (status=paid, preparing, or ready)
+  // These all went through the cashier confirmation step
+  const paidOrders = orders.filter(o =>
+    ["paid", "preparing", "ready"].includes(o.status)
+  );
+  const totalRevenue = paidOrders.reduce(
+    (sum, o) => sum + Number(o.total_amount), 0
+  );
 
   const today = new Date().toLocaleDateString("en-PH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -45,23 +57,27 @@ export default function CashierDashboard() {
 
   function getStatusLabel(status) {
     switch (status) {
-      case "pending":   return "Awaiting Payment";
-      case "waiting":   return "Paid — In Queue";
-      case "preparing": return "Preparing";
-      case "ready":     return "Ready";
-      case "cancelled": return "Cancelled";
-      default:          return status;
+      case "placed":
+      case "pending":         return "Awaiting Payment";
+      case "payment_pending": return "Awaiting Payment";
+      case "paid":            return "Paid — In Queue";
+      case "preparing":       return "Preparing";
+      case "ready":           return "Ready";
+      case "cancelled":       return "Cancelled";
+      default:                return status;
     }
   }
 
   function getStatusClass(status) {
     switch (status) {
-      case "pending":   return styles.pending;
-      case "waiting":   return styles.waiting;
-      case "preparing": return styles.preparing;
-      case "ready":     return styles.ready;
-      case "cancelled": return styles.cancelled;
-      default:          return "";
+      case "placed":
+      case "pending":         return styles.pending;
+      case "payment_pending": return styles.pending;
+      case "paid":            return styles.waiting;
+      case "preparing":       return styles.preparing;
+      case "ready":           return styles.ready;
+      case "cancelled":       return styles.cancelled;
+      default:                return "";
     }
   }
 
@@ -128,7 +144,9 @@ export default function CashierDashboard() {
             <h2 className={styles.statValueSmall}>
               ₱{totalRevenue.toFixed(2)}
             </h2>
-            <p className={styles.statSub}>From confirmed payments</p>
+            <p className={styles.statSub}>
+              {paidOrders.length} paid order{paidOrders.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
 

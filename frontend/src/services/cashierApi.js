@@ -9,16 +9,15 @@ API.interceptors.request.use((config) => {
 export const getCashierOrders = () =>
   API.get("/orders/");
 
-// Step 1 — Cashier confirms payment received → sends order to kitchen
-// status: "waiting" moves order.status from "pending" to "waiting"
-// kitchen only sees orders with status "waiting"
+// Confirm payment — marks cashier_status="paid" which also sets order.status="paid"
+// The kitchen then sees the order because status is now terminal-paid
 export const confirmPaymentAndSendToKitchen = (id) =>
-  API.post(`/orders/${id}/cashier_update/`, { status: "waiting" });
-
-// Step 2 — Cashier marks cashier_status as paid (for record keeping)
-export const markCashierPaid = (id) =>
   API.post(`/orders/${id}/cashier_update/`, { status: "paid" });
 
-// Mark awaiting payment (reset if needed)
+// Mark awaiting_verification (for bulk orders that need extra review)
+export const markAwaitingVerification = (id) =>
+  API.post(`/orders/${id}/cashier_update/`, { status: "awaiting_verification" });
+
+// Mark payment_pending (reset / flag for follow-up)
 export const markAwaitingPayment = (id) =>
-  API.post(`/orders/${id}/cashier_update/`, { status: "awaiting_payment" });
+  API.post(`/orders/${id}/cashier_update/`, { status: "payment_pending" });
