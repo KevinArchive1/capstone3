@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { getOrders, getOrder } from "../../../services/orderApi";
 import API from "../../../services/api";
 import styles from "./OrderHistory.module.css";
 
 function StatusBadge({ status }) {
   const map = {
     placed:          { label: "Placed",           bg: "#fff4ea", color: "#ff7a00" },
+    pending:         { label: "Placed",           bg: "#fff4ea", color: "#ff7a00" },
     payment_pending: { label: "Awaiting Payment",  bg: "#eef2ff", color: "#4a6cf7" },
-    paid:            { label: "Paid",              bg: "#e6f4ea", color: "#28a745" },
+    // "paid" = cashier confirmed, in kitchen queue
+    paid:            { label: "Paid — In Queue",   bg: "#e6f4ea", color: "#28a745" },
+    waiting:         { label: "Paid — In Queue",   bg: "#e6f4ea", color: "#28a745" },
     preparing:       { label: "Preparing",         bg: "#fff8e1", color: "#f59e0b" },
-    ready:           { label: "Ready",             bg: "#fff4ea", color: "#ff7a00" },
+    ready:           { label: "Ready",             bg: "#e6f4ea", color: "#28a745" },
     cancelled:       { label: "Cancelled",         bg: "#fce8e8", color: "#e53e3e" },
     draft:           { label: "Draft",             bg: "#f0f0f0", color: "#888"    },
   };
@@ -20,6 +24,7 @@ function StatusBadge({ status }) {
       background: s.bg, color: s.color,
       fontSize: "11px", fontWeight: 700,
       padding: "3px 10px", borderRadius: "20px",
+      whiteSpace: "nowrap",
     }}>
       {s.label}
     </span>
@@ -36,41 +41,89 @@ export default function OrderHistory() {
   const [activeTab,    setActiveTab]   = useState("orders");
 
   useEffect(() => {
-    if (user) {
-      // Logged-in user — fetch from API
-      API.get("identity/me/history/")
-        .then(res => {
-          setActionLogs(res.data.action_logs || []);
-          setOrders(res.data.guest_orders_matched_after_registration || []);
-        })
-        .catch(() => setError("Could not load history. Please try again."))
-        .finally(() => setLoading(false));
-    } else {
-      // Guest — read tracked order IDs from localStorage then fetch each one
-      const guestOrderIds = JSON.parse(
-        localStorage.getItem("guest_orders") || "[]"
-      );
-      const lastId = localStorage.getItem("last_order_id");
-      const allIds = [...new Set([lastId, ...guestOrderIds].filter(Boolean))];
-
-      if (allIds.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const guestKey = localStorage.getItem("guest_key");
-      Promise.all(
-        allIds.map(id =>
-          API.get(`/orders/${id}/?guest_key=${guestKey}`)
-            .then(r => r.data)
-            .catch(() => null)
-        )
-      )
-        .then(results => setOrders(results.filter(Boolean)))
-        .catch(() => setError("Could not load orders."))
-        .finally(() => setLoading(false));
-    }
+    fetchHistory();
   }, [user]);
+
+  async function fetchHistory() {
+    setLoading(true);
+    setError("");
+
+    try {
+      if (user) {
+        // Logged-in: fetch both their orders and activity log in parallel
+        const [ordersRes, historyRes] = await Promise.all([
+          getOrders(),
+          API.get("identity/me/history/").catch(() => ({ data: { action_logs: [], guest_orders_matched_after_registration: [] } })),
+        ]);
+
+        const userOrders = Array.isArray(ordersRes.data)
+          ? ordersRes.data
+          : ordersRes.data?.results || [];
+
+        // Also merge any guest orders matched after registration
+        const guestMatched = historyRes.data?.guest_orders_matched_after_registration || [];
+        const guestMatchedIds = new Set(guestMatched.map(o => o.id));
+        const merged = [
+          ...userOrders,
+          ...guestMatched.filter(o => !userOrders.find(uo => uo.id === o.id)),
+        ];
+        // Sort newest first
+        merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        setOrders(merged);
+        setActionLogs(historyRes.data?.action_logs || []);
+      } else {
+        // Guest — read tracked order IDs from localStorage
+        const guestKey = localStorage.getItem("guest_key");
+        const guestOrderIds = JSON.parse(localStorage.getItem("guest_orders") || "[]");
+        const lastId = localStorage.getItem("last_order_id");
+        const allIds = [...new Set([lastId, ...guestOrderIds].filter(Boolean))];
+
+        let allOrders = [];
+
+        // First try the bulk guest endpoint
+        if (guestKey) {
+          try {
+            const res = await getOrders(); // now includes guest_key automatically
+            allOrders = Array.isArray(res.data) ? res.data : res.data?.results || [];
+          } catch {
+            // fall through to individual fetch
+          }
+        }
+
+        // Fallback: fetch individually tracked IDs
+        if (allIds.length > 0) {
+          const fetchedIds = new Set(allOrders.map(o => String(o.id)));
+          const missing = allIds.filter(id => !fetchedIds.has(String(id)));
+
+          if (missing.length > 0) {
+            const results = await Promise.all(
+              missing.map(id =>
+                getOrder(id).then(r => r.data).catch(() => null)
+              )
+            );
+            allOrders = [...allOrders, ...results.filter(Boolean)];
+          }
+        }
+
+        // Deduplicate and sort
+        const seen = new Set();
+        allOrders = allOrders.filter(o => {
+          if (seen.has(o.id)) return false;
+          seen.add(o.id);
+          return true;
+        });
+        allOrders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        setOrders(allOrders);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Could not load history. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const today = new Date().toLocaleDateString("en-PH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -100,12 +153,32 @@ export default function OrderHistory() {
 
       {/* Guest prompt to register */}
       {!user && (
-        <div className={styles.guestBanner}>
-          <p>
+        <div style={{
+          background: "#fff4ea",
+          border: "1.5px solid #ff7a00",
+          borderRadius: "12px",
+          padding: "14px 20px",
+          marginBottom: "20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "16px",
+        }}>
+          <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
             📋 Create an account to keep your full order history across devices.
           </p>
           <button
-            className={styles.registerBtn}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "20px",
+              border: "none",
+              background: "#ff7a00",
+              color: "white",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
             onClick={() => navigate("/register")}
           >
             Create Account

@@ -9,24 +9,59 @@ import {
   submitOrder,
   getOrder,
   getOrders,
-  getGuestOrders,
   cancelOrder,
 } from "../../../services/orderApi";
 import styles from "./OrderProcess.module.css";
 
+// ─── helpers ──────────────────────────────────────────────────────────────────
+/**
+ * Derive a normalised "display status" from the full order object so the UI
+ * always shows the right step regardless of which combination of
+ * status / kitchen_status / cashier_status the backend returns.
+ */
+function resolveDisplayStatus(order) {
+  if (!order) return "pending";
+
+  const { status, kitchen_status, bar_status, cashier_status } = order;
+
+  if (status === "cancelled") return "cancelled";
+
+  // Fully served: cashier marked paid AND all stations done (or not required)
+  const stationsDone =
+    (kitchen_status === "ready" || kitchen_status === "not_required") &&
+    (bar_status    === "ready" || bar_status    === "not_required");
+
+  if (status === "ready" && stationsDone) return "served";
+  if (status === "ready") return "ready";
+
+  if (status === "preparing") return "preparing";
+
+  // "paid" = cashier confirmed → kitchen queue
+  if (status === "paid") return "paid";
+
+  if (status === "placed" || status === "pending" || status === "payment_pending")
+    return "placed";
+
+  if (status === "draft") return "draft";
+
+  return status;
+}
+
 // ─── Progress Circle ──────────────────────────────────────────────────────────
-function ProgressCircle({ percent, status }) {
-  const radius       = 54;
+function ProgressCircle({ percent, displayStatus }) {
+  const radius        = 54;
   const circumference = 2 * Math.PI * radius;
-  const offset       = circumference - (percent / 100) * circumference;
+  const offset        = circumference - (percent / 100) * circumference;
 
   const color =
-    status === "ready"     ? "#28a745" :
-    status === "preparing" ? "#f59e0b" :
-    status === "waiting"   ? "#28a745" :
-    status === "pending"   ? "#4a6cf7" :
-    status === "cancelled" ? "#e53e3e" :
-                             "#888";
+    displayStatus === "served"    ? "#28a745" :
+    displayStatus === "ready"     ? "#28a745" :
+    displayStatus === "preparing" ? "#f59e0b" :
+    displayStatus === "paid"      ? "#28a745" :
+    displayStatus === "cancelled" ? "#e53e3e" :
+                                    "#4a6cf7";
+
+  const isDone = displayStatus === "served" || displayStatus === "ready";
 
   return (
     <div className={styles.circleWrapper}>
@@ -43,7 +78,7 @@ function ProgressCircle({ percent, status }) {
           transform="rotate(-90 65 65)"
           style={{ transition: "stroke-dashoffset 0.6s ease" }}
         />
-        {status === "ready" ? (
+        {isDone ? (
           <text x="65" y="72" textAnchor="middle" fontSize="28" fill={color}>✓</text>
         ) : (
           <text x="65" y="72" textAnchor="middle" fontSize="18" fontWeight="700" fill={color}>
@@ -57,7 +92,16 @@ function ProgressCircle({ percent, status }) {
 
 // ─── Status Config ─────────────────────────────────────────────────────────────
 function getStatusConfig(order) {
-  switch (order.status) {
+  const display = resolveDisplayStatus(order);
+
+  const updatedTime = order?.updated_at
+    ? new Date(order.updated_at).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  const createdTime = order?.created_at
+    ? new Date(order.created_at).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })
+    : "—";
+
+  switch (display) {
     case "draft":
       return {
         label:     "DRAFT",
@@ -66,12 +110,10 @@ function getStatusConfig(order) {
         color:     "#888",
         bg:        "#f5f5f5",
         timeLabel: "Created at",
-        time: new Date(order.created_at).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit",
-        }),
+        time:      createdTime,
       };
+
     case "placed":
-    case "pending":
       return {
         label:     "WAITING FOR PAYMENT",
         desc:      "Please proceed to the cashier to pay",
@@ -79,46 +121,53 @@ function getStatusConfig(order) {
         color:     "#4a6cf7",
         bg:        "#eef2ff",
         timeLabel: "Placed at",
-        time: new Date(order.created_at).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit",
-        }),
+        time:      createdTime,
       };
-    case "waiting":
+
+    case "paid":
       return {
         label:     "PAID — IN QUEUE",
-        desc:      "Payment confirmed! Your order is queued for the kitchen",
+        desc:      "Payment confirmed! Kitchen is queued to prepare your order",
         percent:   50,
         color:     "#28a745",
         bg:        "#e6f4ea",
         timeLabel: "Confirmed at",
-        time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit",
-        }),
+        time:      updatedTime,
       };
+
     case "preparing":
       return {
         label:     "PREPARING",
-        desc:      "Your food is being prepared right now",
+        desc:      "Your food is being prepared right now 🍳",
         percent:   75,
         color:     "#f59e0b",
         bg:        "#fff8e1",
         timeLabel: "Started at",
-        time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit",
-        }),
+        time:      updatedTime,
       };
+
     case "ready":
       return {
         label:     "READY!",
         desc:      "Your order is ready — waiter is on the way 🎉",
-        percent:   100,
+        percent:   90,
         color:     "#28a745",
         bg:        "#e6f4ea",
         timeLabel: "Ready at",
-        time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit",
-        }),
+        time:      updatedTime,
       };
+
+    case "served":
+      return {
+        label:     "SERVED ✓",
+        desc:      "Your order has been delivered. Enjoy your meal! 🍽️",
+        percent:   100,
+        color:     "#28a745",
+        bg:        "#e6f4ea",
+        timeLabel: "Served at",
+        time:      updatedTime,
+      };
+
     case "cancelled":
       return {
         label:     "CANCELLED",
@@ -127,10 +176,9 @@ function getStatusConfig(order) {
         color:     "#e53e3e",
         bg:        "#fce8e8",
         timeLabel: "Cancelled at",
-        time: new Date(order.updated_at).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit",
-        }),
+        time:      updatedTime,
       };
+
     default:
       return {
         label:     "PROCESSING",
@@ -139,25 +187,33 @@ function getStatusConfig(order) {
         color:     "#888",
         bg:        "#f5f5f5",
         timeLabel: "Placed at",
-        time:      "—",
+        time:      createdTime,
       };
   }
 }
 
 // ─── Status Steps ─────────────────────────────────────────────────────────────
 const STEPS = [
-  { key: "pending",   label: "Placed"    },
-  { key: "waiting",   label: "Paid"      },
+  { key: "placed",    label: "Placed"    },
+  { key: "paid",      label: "Paid"      },
   { key: "preparing", label: "Preparing" },
   { key: "ready",     label: "Ready"     },
+  { key: "served",    label: "Served"    },
 ];
 
-function StatusSteps({ currentStatus }) {
-  const statusToIndex = {
-    draft: -1, placed: 0, pending: 0,
-    waiting: 1, preparing: 2, ready: 3,
+function StatusSteps({ order }) {
+  const display = resolveDisplayStatus(order);
+
+  const displayToIndex = {
+    draft:     -1,
+    placed:     0,
+    paid:       1,
+    preparing:  2,
+    ready:      3,
+    served:     4,
+    cancelled: -1,
   };
-  const currentIdx = statusToIndex[currentStatus] ?? 0;
+  const currentIdx = displayToIndex[display] ?? 0;
 
   return (
     <div className={styles.stepsRow}>
@@ -198,8 +254,9 @@ function StatusSteps({ currentStatus }) {
 
 // ─── Receipt Panel ────────────────────────────────────────────────────────────
 function ReceiptPanel({ order, onClose }) {
-  const config = getStatusConfig(order);
-  const isPaid = ["waiting", "preparing", "ready"].includes(order.status);
+  const config  = getStatusConfig(order);
+  const display = resolveDisplayStatus(order);
+  const isPaid  = ["paid", "preparing", "ready", "served"].includes(display);
 
   return (
     <div className={styles.receiptPanel}>
@@ -269,8 +326,9 @@ function ReceiptPanel({ order, onClose }) {
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
 function OrderCard({ order, onViewReceipt, onCancel, cancelling }) {
-  const config    = getStatusConfig(order);
-  const canCancel = ["draft", "placed", "pending"].includes(order.status);
+  const config  = getStatusConfig(order);
+  const display = resolveDisplayStatus(order);
+  const canCancel = ["draft", "placed"].includes(display);
 
   return (
     <div className={styles.orderCard}>
@@ -305,7 +363,7 @@ function OrderCard({ order, onViewReceipt, onCancel, cancelling }) {
         </p>
       </div>
 
-      <ProgressCircle percent={config.percent} status={order.status} />
+      <ProgressCircle percent={config.percent} displayStatus={display} />
 
       <div className={styles.orderItems}>
         <p className={styles.itemsLabel}>
@@ -349,7 +407,7 @@ function OrderCard({ order, onViewReceipt, onCancel, cancelling }) {
 function OrderTracker({ orderId }) {
   const { user } = useAuth();
   const [activeOrders,    setActiveOrders]    = useState([]);
-  const [cancelledOrders, setCancelledOrders] = useState([]);
+  const [doneOrders,      setDoneOrders]      = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [error,           setError]           = useState("");
   const [selectedOrder,   setSelectedOrder]   = useState(null);
@@ -369,75 +427,62 @@ function OrderTracker({ orderId }) {
       const guestKey = localStorage.getItem("guest_key");
       let allOrders  = [];
 
-      if (token) {
-        // Logged-in user: backend returns all orders for this user
+      if (token || guestKey) {
         const res = await getOrders();
-        allOrders = res.data;
-      } else if (guestKey) {
-        // Guest: use guest_key query param — backend filters by guest device
-        const res = await getGuestOrders();
-        allOrders = res.data;
-
-        // Fallback: also fetch individually tracked IDs in case the
-        // backend didn't return all of them (e.g. expired guest session)
-        const trackedIds = [
-          ...new Set(
-            [
-              localStorage.getItem("last_order_id"),
-              ...JSON.parse(localStorage.getItem("guest_orders") || "[]"),
-            ].filter(Boolean)
-          ),
-        ];
-
-        if (trackedIds.length > 0) {
-          const fetchedIds = new Set(allOrders.map(o => String(o.id)));
-          const missing = trackedIds.filter(id => !fetchedIds.has(String(id)));
-
-          if (missing.length > 0) {
-            const results = await Promise.all(
-              missing.map(id => getOrder(id).then(r => r.data).catch(() => null))
-            );
-            allOrders = [...allOrders, ...results.filter(Boolean)];
-          }
-        }
+        allOrders = Array.isArray(res.data) ? res.data : res.data?.results || [];
       } else {
         setError("No session found. Please log in or continue as guest.");
         setLoading(false);
         return;
       }
 
-      // If a specific orderId was navigated to, make sure it's highlighted
-      if (orderId) {
-        const exists = allOrders.find(o => String(o.id) === String(orderId));
-        if (!exists) {
-          // Try fetching it directly
-          try {
-            const single = await getOrder(orderId);
-            if (single.data) allOrders = [single.data, ...allOrders];
-          } catch {
-            // ignore
-          }
+      // Fallback: also check locally tracked IDs
+      const trackedIds = [
+        ...new Set([
+          localStorage.getItem("last_order_id"),
+          ...JSON.parse(localStorage.getItem("guest_orders") || "[]"),
+        ].filter(Boolean))
+      ];
+      if (trackedIds.length > 0) {
+        const fetchedIds = new Set(allOrders.map(o => String(o.id)));
+        const missing = trackedIds.filter(id => !fetchedIds.has(String(id)));
+        if (missing.length > 0) {
+          const results = await Promise.all(
+            missing.map(id => getOrder(id).then(r => r.data).catch(() => null))
+          );
+          allOrders = [...allOrders, ...results.filter(Boolean)];
         }
       }
 
-      // Deduplicate by id
+      // Ensure the navigated-to order is present
+      if (orderId) {
+        const exists = allOrders.find(o => String(o.id) === String(orderId));
+        if (!exists) {
+          try {
+            const single = await getOrder(orderId);
+            if (single.data) allOrders = [single.data, ...allOrders];
+          } catch { /* ignore */ }
+        }
+      }
+
+      // Deduplicate & sort newest first
       const seen = new Set();
-      allOrders = allOrders.filter(o => {
-        if (seen.has(o.id)) return false;
-        seen.add(o.id);
-        return true;
+      allOrders = allOrders
+        .filter(o => { if (seen.has(o.id)) return false; seen.add(o.id); return true; })
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      // Split into active vs done using the resolved display status
+      const active = allOrders.filter(o => {
+        const d = resolveDisplayStatus(o);
+        return ["draft", "placed", "paid", "preparing", "ready"].includes(d);
+      });
+      const done = allOrders.filter(o => {
+        const d = resolveDisplayStatus(o);
+        return ["served", "cancelled"].includes(d);
       });
 
-      // Sort newest first
-      allOrders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-      const active = allOrders.filter(o =>
-        ["draft", "placed", "pending", "waiting", "preparing", "ready"].includes(o.status)
-      );
-      const cancelled = allOrders.filter(o => o.status === "cancelled");
-
       setActiveOrders(active);
-      setCancelledOrders(cancelled);
+      setDoneOrders(done);
       setError("");
     } catch (err) {
       console.error("fetchOrders error:", err);
@@ -447,12 +492,11 @@ function OrderTracker({ orderId }) {
     }
   }
 
-  async function handleCancel(orderId) {
+  async function handleCancel(id) {
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
-
-    setCancelling(orderId);
+    setCancelling(id);
     try {
-      await cancelOrder(orderId);
+      await cancelOrder(id);
       await fetchOrders();
     } catch (err) {
       const msg =
@@ -465,9 +509,7 @@ function OrderTracker({ orderId }) {
     }
   }
 
-  if (loading) return (
-    <div className={styles.loading}>Loading your orders...</div>
-  );
+  if (loading) return <div className={styles.loading}>Loading your orders...</div>;
 
   if (error) return (
     <div className={styles.trackerPage}>
@@ -480,8 +522,8 @@ function OrderTracker({ orderId }) {
     </div>
   );
 
-  const displayOrders =
-    activeTab === "active" ? activeOrders : cancelledOrders;
+  const displayOrders = activeTab === "active" ? activeOrders : doneOrders;
+  const mostRecent    = activeOrders[0];
 
   return (
     <div className={styles.trackerPage}>
@@ -495,20 +537,18 @@ function OrderTracker({ orderId }) {
               Tracking {activeOrders.length} active order
               {activeOrders.length !== 1 ? "s" : ""}
             </p>
-            <p className={styles.notifSub}>
-              Auto-refreshes every 8 seconds
-            </p>
+            <p className={styles.notifSub}>Auto-refreshes every 8 seconds</p>
           </div>
         </div>
       )}
 
       {/* STATUS STEPS for most recent active order */}
-      {activeOrders[0] && (
+      {mostRecent && (
         <div className={styles.stepsCard}>
           <p className={styles.stepsLabel}>
-            Order #{activeOrders[0].receipt_number?.slice(-6)} — Progress
+            Order #{mostRecent.receipt_number?.slice(-6)} — Progress
           </p>
-          <StatusSteps currentStatus={activeOrders[0].status} />
+          <StatusSteps order={mostRecent} />
         </div>
       )}
 
@@ -524,12 +564,12 @@ function OrderTracker({ orderId }) {
           )}
         </button>
         <button
-          className={activeTab === "cancelled" ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab("cancelled")}
+          className={activeTab === "done" ? styles.activeTab : styles.tab}
+          onClick={() => setActiveTab("done")}
         >
-          Cancelled
-          {cancelledOrders.length > 0 && (
-            <span className={styles.tabCount}>{cancelledOrders.length}</span>
+          Completed & Cancelled
+          {doneOrders.length > 0 && (
+            <span className={styles.tabCount}>{doneOrders.length}</span>
           )}
         </button>
       </div>
@@ -539,24 +579,17 @@ function OrderTracker({ orderId }) {
           <p>
             {activeTab === "active"
               ? "🎉 No active orders."
-              : "No cancelled orders."}
+              : "No completed or cancelled orders."}
           </p>
           {activeTab === "active" && (
-            <button
-              className={styles.orderAgainBtn}
-              onClick={() => navigate("/menu")}
-            >
+            <button className={styles.orderAgainBtn} onClick={() => navigate("/menu")}>
               Go to Menu
             </button>
           )}
         </div>
       ) : (
         <div className={styles.trackerLayout}>
-          <div
-            className={`${styles.orderList} ${
-              selectedOrder ? styles.orderListNarrow : ""
-            }`}
-          >
+          <div className={`${styles.orderList} ${selectedOrder ? styles.orderListNarrow : ""}`}>
             {displayOrders.map(order => (
               <OrderCard
                 key={order.id}
@@ -623,7 +656,6 @@ export default function OrderProcess() {
       const newOrder = orderRes.data;
       await submitOrder(newOrder.id);
 
-      // Track this order ID for guest recovery
       const stored = JSON.parse(localStorage.getItem("guest_orders") || "[]");
       if (!stored.includes(String(newOrder.id))) {
         stored.push(String(newOrder.id));
@@ -659,22 +691,17 @@ export default function OrderProcess() {
         {table ? (
           <div className={styles.confirmTableBadge}>
             🪑 Table <strong>{table.identifier}</strong>
-            <button
-              className={styles.changeTableBtn}
-              onClick={() => setShowTableModal(true)}
-            >
+            <button className={styles.changeTableBtn} onClick={() => setShowTableModal(true)}>
               Change
             </button>
           </div>
         ) : (
-          <div className={styles.confirmTableMissing}>
-            ⚠️ No table selected
-          </div>
+          <div className={styles.confirmTableMissing}>⚠️ No table selected</div>
         )}
 
         <p className={styles.confirmUser}>
           {user
-            ? <>👤 <strong>{user.username}</strong></>
+            ? <><span>👤</span> <strong>{user.username}</strong></>
             : <span style={{ color: "#888" }}>👤 Guest order</span>
           }
         </p>
@@ -699,9 +726,7 @@ export default function OrderProcess() {
           ))}
           <div className={styles.confirmTotal}>
             <strong>Total</strong>
-            <strong className={styles.confirmTotalValue}>
-              ₱{total.toFixed(2)}
-            </strong>
+            <strong className={styles.confirmTotalValue}>₱{total.toFixed(2)}</strong>
           </div>
         </div>
 
@@ -715,10 +740,7 @@ export default function OrderProcess() {
           {loading ? "Placing order..." : "Confirm Order"}
         </button>
 
-        <button
-          className={styles.backBtn}
-          onClick={() => navigate("/cart")}
-        >
+        <button className={styles.backBtn} onClick={() => navigate("/cart")}>
           ← Back to Cart
         </button>
       </div>
