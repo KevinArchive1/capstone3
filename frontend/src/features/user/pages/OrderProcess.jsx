@@ -15,9 +15,13 @@ import styles from "./OrderProcess.module.css";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 /**
- * Derive a normalised "display status" from the full order object so the UI
- * always shows the right step regardless of which combination of
- * status / kitchen_status / cashier_status the backend returns.
+ * Derive a normalised "display status" from the full order object.
+ *
+ * Derives a display status from the full order object returned by the API.
+ * This is needed because the cashier's "Mark as Served" action calls
+ * cashier_update("paid"), which overwrites order.status back to "paid"
+ * even after the kitchen has finished. So we cannot rely on order.status
+ * alone — we also read kitchen_status, bar_status, and cashier_status.
  */
 function resolveDisplayStatus(order) {
   if (!order) return "pending";
@@ -25,27 +29,47 @@ function resolveDisplayStatus(order) {
   const { status, kitchen_status, bar_status, cashier_status } = order;
 
   if (status === "cancelled") return "cancelled";
+  if (status === "draft")     return "draft";
 
-  // Fully served: cashier marked paid AND all stations done (or not required)
-  const stationsDone =
-    (kitchen_status === "ready" || kitchen_status === "not_required") &&
-    (bar_status    === "ready" || bar_status    === "not_required");
+  // A station is "finished" when it is ready OR was never needed.
+  const kitchenDone = kitchen_status === "ready" || kitchen_status === "not_required";
+  const barDone     = bar_status     === "ready" || bar_status     === "not_required";
+  const allDone     = kitchenDone && barDone;
 
-  if (status === "ready" && stationsDone) return "served";
+  // "served" has TWO cases because of a backend quirk:
+  //
+  // Case 1 — Normal: kitchen marked ready → order.status becomes "ready"
+  //   (brief window before cashier clicks "Mark as Served")
+  //
+  // Case 2 — After cashier clicks "Mark as Served": it calls cashier_update("paid")
+  //   which OVERWRITES order.status back to "paid" even though food is done.
+  //   Detect this by: status==="paid" + cashier_status==="paid" + all stations done.
+  if (status === "paid" && cashier_status === "paid" && allDone) return "served";
+  if (status === "ready" && allDone)                             return "served";
+
+  // "ready" = stations done but cashier hasn't closed yet (rare window)
   if (status === "ready") return "ready";
 
   if (status === "preparing") return "preparing";
 
-  // "paid" = cashier confirmed → kitchen queue
+  // "paid" = cashier confirmed payment, kitchen not done yet → in queue
   if (status === "paid") return "paid";
 
-  if (status === "placed" || status === "pending" || status === "payment_pending")
-    return "placed";
-
-  if (status === "draft") return "draft";
+  if (["placed", "pending", "payment_pending"].includes(status)) return "placed";
 
   return status;
 }
+
+// ─── Per-step color map ───────────────────────────────────────────────────────
+const STATUS_COLORS = {
+  placed:    "#4a6cf7",  // blue
+  paid:      "#8b5cf6",  // purple
+  preparing: "#f59e0b",  // amber
+  ready:     "#0ea5e9",  // sky
+  served:    "#22c55e",  // green
+  cancelled: "#e53e3e",  // red
+  draft:     "#aaaaaa",  // grey
+};
 
 // ─── Progress Circle ──────────────────────────────────────────────────────────
 function ProgressCircle({ percent, displayStatus }) {
@@ -53,15 +77,8 @@ function ProgressCircle({ percent, displayStatus }) {
   const circumference = 2 * Math.PI * radius;
   const offset        = circumference - (percent / 100) * circumference;
 
-  const color =
-    displayStatus === "served"    ? "#28a745" :
-    displayStatus === "ready"     ? "#28a745" :
-    displayStatus === "preparing" ? "#f59e0b" :
-    displayStatus === "paid"      ? "#28a745" :
-    displayStatus === "cancelled" ? "#e53e3e" :
-                                    "#4a6cf7";
-
-  const isDone = displayStatus === "served" || displayStatus === "ready";
+  const color  = STATUS_COLORS[displayStatus] || "#aaa";
+  const isDone = displayStatus === "served";
 
   return (
     <div className={styles.circleWrapper}>
@@ -91,8 +108,21 @@ function ProgressCircle({ percent, displayStatus }) {
 }
 
 // ─── Status Config ─────────────────────────────────────────────────────────────
+// bg is a light tint of the matching STATUS_COLORS entry
+const STATUS_BG = {
+  placed:    "#eef2ff",  // light blue
+  paid:      "#f3eeff",  // light purple
+  preparing: "#fff8e1",  // light amber
+  ready:     "#e0f4ff",  // light sky
+  served:    "#e6f9ee",  // light green
+  cancelled: "#fce8e8",  // light red
+  draft:     "#f5f5f5",  // light grey
+};
+
 function getStatusConfig(order) {
   const display = resolveDisplayStatus(order);
+  const color   = STATUS_COLORS[display] || "#aaa";
+  const bg      = STATUS_BG[display]     || "#f5f5f5";
 
   const updatedTime = order?.updated_at
     ? new Date(order.updated_at).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })
@@ -103,92 +133,21 @@ function getStatusConfig(order) {
 
   switch (display) {
     case "draft":
-      return {
-        label:     "DRAFT",
-        desc:      "Your order hasn't been submitted yet",
-        percent:   5,
-        color:     "#888",
-        bg:        "#f5f5f5",
-        timeLabel: "Created at",
-        time:      createdTime,
-      };
-
+      return { label: "DRAFT",               desc: "Your order hasn't been submitted yet",                    percent: 5,   color, bg, timeLabel: "Created at",   time: createdTime };
     case "placed":
-      return {
-        label:     "WAITING FOR PAYMENT",
-        desc:      "Please proceed to the cashier to pay",
-        percent:   25,
-        color:     "#4a6cf7",
-        bg:        "#eef2ff",
-        timeLabel: "Placed at",
-        time:      createdTime,
-      };
-
+      return { label: "WAITING FOR PAYMENT", desc: "Please proceed to the cashier to pay",                   percent: 25,  color, bg, timeLabel: "Placed at",     time: createdTime };
     case "paid":
-      return {
-        label:     "PAID — IN QUEUE",
-        desc:      "Payment confirmed! Kitchen is queued to prepare your order",
-        percent:   50,
-        color:     "#28a745",
-        bg:        "#e6f4ea",
-        timeLabel: "Confirmed at",
-        time:      updatedTime,
-      };
-
+      return { label: "PAID — IN QUEUE",     desc: "Payment confirmed! Kitchen is queued to prepare your order", percent: 50, color, bg, timeLabel: "Confirmed at", time: updatedTime };
     case "preparing":
-      return {
-        label:     "PREPARING",
-        desc:      "Your food is being prepared right now 🍳",
-        percent:   75,
-        color:     "#f59e0b",
-        bg:        "#fff8e1",
-        timeLabel: "Started at",
-        time:      updatedTime,
-      };
-
+      return { label: "PREPARING",           desc: "Your food is being prepared right now 🍳",                percent: 75,  color, bg, timeLabel: "Started at",    time: updatedTime };
     case "ready":
-      return {
-        label:     "READY!",
-        desc:      "Your order is ready — waiter is on the way 🎉",
-        percent:   90,
-        color:     "#28a745",
-        bg:        "#e6f4ea",
-        timeLabel: "Ready at",
-        time:      updatedTime,
-      };
-
+      return { label: "READY!",              desc: "Your order is ready — waiter is on the way 🎉",           percent: 90,  color, bg, timeLabel: "Ready at",      time: updatedTime };
     case "served":
-      return {
-        label:     "SERVED ✓",
-        desc:      "Your order has been delivered. Enjoy your meal! 🍽️",
-        percent:   100,
-        color:     "#28a745",
-        bg:        "#e6f4ea",
-        timeLabel: "Served at",
-        time:      updatedTime,
-      };
-
+      return { label: "SERVED ✓",            desc: "Your order has been delivered. Enjoy your meal! 🍽️",     percent: 100, color, bg, timeLabel: "Served at",     time: updatedTime };
     case "cancelled":
-      return {
-        label:     "CANCELLED",
-        desc:      "This order was cancelled",
-        percent:   0,
-        color:     "#e53e3e",
-        bg:        "#fce8e8",
-        timeLabel: "Cancelled at",
-        time:      updatedTime,
-      };
-
+      return { label: "CANCELLED",           desc: "This order was cancelled",                                percent: 0,   color, bg, timeLabel: "Cancelled at",  time: updatedTime };
     default:
-      return {
-        label:     "PROCESSING",
-        desc:      "Your order is being processed",
-        percent:   10,
-        color:     "#888",
-        bg:        "#f5f5f5",
-        timeLabel: "Placed at",
-        time:      createdTime,
-      };
+      return { label: "PROCESSING",          desc: "Your order is being processed",                           percent: 10,  color, bg, timeLabel: "Placed at",     time: createdTime };
   }
 }
 
@@ -220,28 +179,27 @@ function StatusSteps({ order }) {
       {STEPS.map((step, i) => {
         const done   = i < currentIdx;
         const active = i === currentIdx;
+        const color  = STATUS_COLORS[step.key];
+
+        const dotStyle = (done || active)
+          ? { background: color, color: "white", boxShadow: active ? `0 0 0 4px ${color}33` : "none" }
+          : { background: "#f0f0f0", color: "#aaa" };
+
+        const lineStyle = (done || active)
+          ? { background: color }
+          : { background: "#eee" };
+
         return (
           <div key={step.key} className={styles.stepItem}>
             {i > 0 && (
-              <div
-                className={`${styles.stepLine} ${
-                  done || active ? styles.stepLineDone : ""
-                }`}
-              />
+              <div className={styles.stepLine} style={done ? { background: STATUS_COLORS[STEPS[i - 1].key] } : {}} />
             )}
-            <div
-              className={`${styles.stepDot} ${
-                done   ? styles.stepDone   :
-                active ? styles.stepActive :
-                         styles.stepPending
-              }`}
-            >
+            <div className={styles.stepDot} style={dotStyle}>
               {done ? "✓" : i + 1}
             </div>
             <span
-              className={`${styles.stepLabel} ${
-                active ? styles.stepLabelActive : ""
-              }`}
+              className={styles.stepLabel}
+              style={active ? { color, fontWeight: 700 } : {}}
             >
               {step.label}
             </span>

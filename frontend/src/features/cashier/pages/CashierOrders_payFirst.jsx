@@ -34,8 +34,6 @@ export default function CashierOrders() {
     }
   }
 
-  // Confirm payment → sets cashier_status=paid, order.status=paid
-  // Kitchen then picks it up (kitchen filters by station=kitchen, any status)
   async function handleConfirmPayment(order) {
     setProcessing(order.id);
     setErrorMsg("");
@@ -60,7 +58,7 @@ export default function CashierOrders() {
     setProcessing(order.id);
     setErrorMsg("");
     try {
-      await confirmPaymentAndSendToKitchen(order.id); // reuses cashier_update with paid
+      await confirmPaymentAndSendToKitchen(order.id);
       await fetchOrders();
       setSelectedOrder(null);
     } catch (err) {
@@ -77,22 +75,32 @@ export default function CashierOrders() {
     }
   }
 
-  // Backend status flow (after cashier marks paid):
-  // placed/pending  = order placed, waiting for cashier to confirm payment
-  // paid            = cashier confirmed payment, kitchen sees it
-  // preparing       = kitchen started (kitchen_status=preparing)
-  // ready           = food ready, waiter serves (kitchen_status=ready)
-  // cancelled       = cancelled
+  // ── Tab bucketing ──────────────────────────────────────────────────────────
+  //
+  // Backend status flow:
+  //   placed / pending / payment_pending  → awaiting cashier payment
+  //   paid                               → cashier confirmed; kitchen queue
+  //   preparing                          → kitchen started
+  //   ready                              → all stations done; waiter serves
+  //   cancelled                          → cancelled
+  //
+  // "done" tab = only truly-cancelled orders.
+  // We do NOT include paid/ready orders there — they are active workflow states.
 
-  const newOrders   = orders.filter(o =>
+  const newOrders = orders.filter(o =>
     ["placed", "pending", "payment_pending"].includes(o.status)
   );
-  const inKitchen   = orders.filter(o =>
-    o.status === "paid" && o.kitchen_status !== "ready" && o.kitchen_status !== "not_required"
+
+  const inKitchen = orders.filter(o =>
+    // paid but kitchen not yet ready, OR actively preparing
+    (o.status === "paid" && o.kitchen_status !== "ready" && o.kitchen_status !== "not_required") ||
+    o.status === "preparing"
   );
-  const preparingOrders = orders.filter(o => o.status === "preparing");
+
   const readyOrders = orders.filter(o => o.status === "ready");
-  const doneOrders = orders.filter(o => o.status === "cancelled" || (o.status === "paid" && o.cashier_status === "paid"));
+
+  // Only cancelled orders belong in the "done/cancelled" bucket.
+  const cancelledOrders = orders.filter(o => o.status === "cancelled");
 
   const tabConfig = [
     {
@@ -105,7 +113,7 @@ export default function CashierOrders() {
     {
       key:         "in_kitchen",
       label:       "In Kitchen",
-      orders:      [...inKitchen, ...preparingOrders],
+      orders:      [...inKitchen],
       badgeColor:  "#f59e0b",
       description: "Paid and being prepared",
     },
@@ -119,7 +127,7 @@ export default function CashierOrders() {
     {
       key:         "done",
       label:       "Cancelled",
-      orders:      doneOrders,
+      orders:      cancelledOrders,
       badgeColor:  "#e53e3e",
       description: "Cancelled orders",
     },
@@ -177,10 +185,10 @@ export default function CashierOrders() {
       {/* FLOW GUIDE */}
       <div className={styles.flowGuide}>
         {[
-          { icon: "🧾", label: "Order Placed",    active: newOrders.length > 0              },
-          { icon: "💳", label: "Confirm Payment", active: false                             },
-          { icon: "🍳", label: "Kitchen Prepares", active: inKitchen.length > 0 || preparingOrders.length > 0 },
-          { icon: "🍽️", label: "Ready to Serve",  active: readyOrders.length > 0            },
+          { icon: "🧾", label: "Order Placed",     active: newOrders.length > 0                             },
+          { icon: "💳", label: "Confirm Payment",  active: false                                            },
+          { icon: "🍳", label: "Kitchen Prepares", active: inKitchen.length > 0                             },
+          { icon: "🍽️", label: "Ready to Serve",  active: readyOrders.length > 0                           },
         ].map((step, i) => (
           <div key={i} className={styles.flowStep}>
             <div className={`${styles.flowDot} ${step.active ? styles.flowDotActive : ""}`}>
