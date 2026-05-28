@@ -1,0 +1,138 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f0f7f7;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 95%;
+  background: white;
+  border-right: 1px solid #d0eaea;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  z-index: 100;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 32px;
+  padding: 0 8px;
+  line-height: 1.2;
+}
+
+.logo span { color: #0891b2; }
+
+.logo p {
+  font-size: 11px;
+  font-weight: 400;
+  color: #aaa;
+  margin: 4px 0 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.link:hover {
+  background: #f0f7f7;
+  color: #1a1a1a;
+}
+
+.activeLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0891b2;
+  text-decoration: none;
+  background: #e0f2fe;
+  cursor: pointer;
+}
+
+.icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.userRole {
+  font-size: 11px;
+  color: #0891b2;
+  margin: 0;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.logout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e53e3e;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.logout:hover { background: #fff5f5; }
+
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 32px 40px;
+}

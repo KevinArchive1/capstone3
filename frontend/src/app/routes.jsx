@@ -27,21 +27,24 @@ import KitchenOrderHistory from "../features/kitchen/pages/KitchenOrderHistory";
 import InventoryAlerts from "../features/kitchen/pages/InventoryAlerts";
 import MenuReference from "../features/kitchen/pages/MenuReference";
 
+import BarLayout from "../features/bar/components/layout/BarLayout";
+import BarDashboard from "../features/bar/pages/BarDashboard";
+import BarOrders from "../features/bar/pages/BarOrders";
+import BarOrderHistory from "../features/bar/pages/BarOrderHistory";
+import BarMenuReference from "../features/bar/pages/BarMenuReference";
+
 import CashierLayout from "../features/cashier/components/layout/CashierLayout";
 import CashierDashboard from "../features/cashier/pages/CashierDashboard";
 import CashierOrders_payFirst from "../features/cashier/pages/CashierOrders_payFirst";
 import CashierOrderHistory from "../features/cashier/pages/CashierOrderHistory";
 
 import Home from "../features/user/pages/Home";
-
 import Menu from "../features/user/pages/Menu";
-
-
 import Cart from "../features/user/pages/Cart";
 import OrderProcess from "../features/user/pages/OrderProcess";
 
 import ProtectedRoute from "../components/ProtectedRoute";
-import OrderHistory from "../features/user/pages/OrderHistory"; 
+import OrderHistory from "../features/user/pages/OrderHistory";
 
 export default function AppRoutes() {
   return (
@@ -86,16 +89,13 @@ export default function AppRoutes() {
         >
           <Route path="/" element={<Home />} />
           <Route path="/menu" element={<Menu />} />
-
           <Route path="/cart" element={<Cart />} />
-
           <Route path="/order/process" element={<OrderProcess />} />
           <Route path="/order/process/:id" element={<OrderProcess />} />
-
           <Route path="/account/history" element={<OrderHistory />} />
         </Route>
 
-        {/* 👨‍💼 ADMIN (OUTSIDE!) */}
+        {/* 👨‍💼 ADMIN */}
         <Route
           path="/admin"
           element={
@@ -141,6 +141,22 @@ export default function AppRoutes() {
           <Route path="menu" element={<MenuReference />} />
         </Route>
 
+        {/* 🍹 BAR */}
+        <Route
+          path="/bar"
+          element={
+            <ProtectedRoute allowedRoles={["staff"]}>
+              <BarLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<BarDashboard />} />
+          <Route path="orders" element={<BarOrders />} />
+          <Route path="history" element={<BarOrderHistory />} />
+          <Route path="menu" element={<BarMenuReference />} />
+        </Route>
+
+        {/* 💳 CASHIER */}
         <Route
           path="/cashier"
           element={

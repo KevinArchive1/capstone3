@@ -1,0 +1,235 @@
+.page { width: 100%; }
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.greeting {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.sub {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.date { font-size: 13px; color: #888; }
+
+/* STATS */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.statCard {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  cursor: pointer;
+  position: relative;
+  transition: box-shadow 0.2s;
+  border-top: 3px solid transparent;
+}
+
+.statCard:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-top-color: #0891b2;
+}
+
+.statIcon { font-size: 28px; }
+
+.statLabel {
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 4px;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1;
+}
+
+.statSub {
+  font-size: 11px;
+  color: #aaa;
+  margin: 4px 0 0;
+}
+
+.dot {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0891b2;
+}
+
+.dotRed {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e53e3e;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  background: #e0f2fe;
+  color: #0891b2;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.badgeRed {
+  background: #fce8e8;
+  color: #e53e3e;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.badgeGreen {
+  background: #e6f4ea;
+  color: #28a745;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orderItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f9f9f9;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.orderItem:hover { background: #f0f7f7; }
+
+.stockItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fff8f8;
+  border-radius: 10px;
+  border-left: 3px solid #e53e3e;
+}
+
+.orderLeft { display: flex; flex-direction: column; gap: 2px; }
+.orderRight { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+.orderNumber {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.orderNote {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
+
+.orderItems {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
+
+.stockQty {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e53e3e;
+}
+
+.reorderLevel {
+  font-size: 11px;
+  color: #aaa;
+}
+
+.pendingBadge {
+  background: #e0f2fe;
+  color: #0891b2;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.readyBadge {
+  background: #e6f4ea;
+  color: #28a745;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.empty {
+  color: #bbb;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+}

@@ -22,8 +22,8 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     if (staffRole === "kitchen" && !location.pathname.startsWith("/kitchen")) {
       return <Navigate to="/kitchen" />;
     }
-    if (staffRole === "bar" && !location.pathname.startsWith("/kitchen")) {
-      return <Navigate to="/kitchen" />;
+    if (staffRole === "bar" && !location.pathname.startsWith("/bar")) {
+      return <Navigate to="/bar" />;
     }
     if (staffRole === "cashier" && !location.pathname.startsWith("/cashier")) {
       return <Navigate to="/cashier" />;

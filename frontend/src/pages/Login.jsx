@@ -40,7 +40,7 @@ function Login() {
 
       if (role === "admin") navigate("/admin");
       else if (role === "staff" && staffRole === "kitchen") navigate("/kitchen");
-      else if (role === "staff" && staffRole === "bar") navigate("/kitchen");
+      else if (role === "staff" && staffRole === "bar") navigate("/bar");
       else if (role === "staff" && staffRole === "cashier") navigate("/cashier");
       else if (role === "staff") navigate("/staff");
       else navigate("/");

@@ -1,0 +1,257 @@
+.page { width: 100%; }
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.sub {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.date { font-size: 13px; color: #888; }
+
+/* ERROR BANNER */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fce8e8;
+  border: 1px solid #f5c6c6;
+  color: #c53030;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 18px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.errorClose {
+  background: none;
+  border: none;
+  color: #c53030;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 12px;
+}
+
+/* KANBAN */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.column {
+  background: #f0f7f7;
+  border-radius: 16px;
+  padding: 16px;
+  min-height: 400px;
+}
+
+.columnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.columnTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.columnBadge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.pendingColor   { background: #e0f2fe; color: #0891b2; }
+.preparingColor { background: #fef3c7; color: #d97706; }
+.readyColor     { background: #e6f4ea; color: #28a745; }
+
+/* CARD LIST */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ORDER CARD */
+.orderCard {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-left: 4px solid transparent;
+}
+
+.pendingCard   { border-left-color: #0891b2; }
+.preparingCard { border-left-color: #d97706; }
+.readyCard     { border-left-color: #28a745; }
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.orderNumber {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.pendingBadge   { background: #e0f2fe; color: #0891b2; }
+.preparingBadge { background: #fef3c7; color: #d97706; }
+.readyBadge     { background: #e6f4ea; color: #28a745; }
+
+.tableNote {
+  font-size: 12px;
+  color: #555;
+  margin: 0 0 4px;
+}
+
+.time {
+  font-size: 11px;
+  color: #aaa;
+  margin: 0 0 10px;
+}
+
+/* Mixed order badges */
+.mixedBadge {
+  display: inline-block;
+  font-size: 11px;
+  color: #ff7a00;
+  background: #fff4ea;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.waitingKitchenBadge {
+  display: inline-block;
+  font-size: 11px;
+  color: #d97706;
+  background: #fef3c7;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+/* ITEMS */
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.itemRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemName {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.itemQty {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0891b2;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* BUTTONS */
+.prepareBtn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #0891b2;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.prepareBtn:hover    { background: #0e7490; }
+.prepareBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.readyBtn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #28a745;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.readyBtn:hover    { background: #218838; }
+.readyBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.readyNote {
+  text-align: center;
+  font-size: 12px;
+  color: #28a745;
+  font-weight: 600;
+  padding: 8px;
+  background: #e6f4ea;
+  border-radius: 8px;
+}
+
+/* EMPTY */
+.emptyCol {
+  text-align: center;
+  color: #bbb;
+  font-size: 14px;
+  padding: 40px 0;
+}

@@ -12,7 +12,7 @@ export default function PublicRoute({ children }) {
 
     if (role === "staff") {
       if (staffRole === "kitchen") return <Navigate to="/kitchen" />;
-      if (staffRole === "bar") return <Navigate to="/kitchen" />;
+      if (staffRole === "bar") return <Navigate to="/bar" />;
       if (staffRole === "cashier") return <Navigate to="/cashier" />;
       return <Navigate to="/staff" />;
     }
